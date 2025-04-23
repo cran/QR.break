@@ -1,3 +1,8 @@
+# QR.break (version 1.0.2)
+
+* Minor improvements to output: additional estimation results are now properly saved and returned by `rq.break()`
+* Small updates to documentation for clarity
+
 # QR.break (version 1.0.1)
 
 * Initial CRAN release

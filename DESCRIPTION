@@ -1,6 +1,6 @@
 Package: QR.break
 Title: Structural Breaks in Quantile Regression
-Version: 1.0.1
+Version: 1.0.2
 Authors@R: c(
     person("Zhongjun", "Qu", , "qu@bu.edu", role = c("aut", "cre")),
     person("Tatsushi", "Oka", , "oka.econ@gmail.com", role = "aut"),
@@ -15,12 +15,12 @@ Description: Methods for detecting structural breaks, determining the
  .
        References for detailed theoretical and empirical explanations:
  .
-       (1) Qu, Z. (2008). Testing for Structural Change in Regression Quantiles.
-    Journal of Econometrics, 146(1), 170-184
+       (1) Qu, Z. (2008).  "Testing for Structural Change in Regression
+    Quantiles."  Journal of Econometrics, 146(1), 170-184
     <doi:10.1016/j.jeconom.2008.08.006>
  .
-       (2) Oka, T., and Qu, Z. (2011).  Estimating Structural Changes in
-    Regression Quantiles.  Journal of Econometrics, 162(2), 248-267
+       (2) Oka, T., and Qu, Z. (2011).  "Estimating Structural Changes in
+    Regression Quantiles."  Journal of Econometrics, 162(2), 248-267
     <doi:10.1016/j.jeconom.2011.01.005>.
 License: GPL (>= 3)
 Depends: R (>= 4.3.0)
@@ -30,9 +30,9 @@ RoxygenNote: 7.3.2
 Imports: quantreg
 Suggests: SparseM
 LazyData: true
-Packaged: 2025-03-26 18:57:05 UTC; qu
+Packaged: 2025-04-19 17:32:27 UTC; zquem
 Author: Zhongjun Qu [aut, cre],
   Tatsushi Oka [aut],
   Samuel Messer [ctb]
 Repository: CRAN
-Date/Publication: 2025-04-07 15:10:02 UTC
+Date/Publication: 2025-04-23 17:50:02 UTC

@@ -1,6 +1,6 @@
-304125ea3af8e83a732f977e1db9fc0e *DESCRIPTION
+da9b147d073b0e889b5e380732b7b079 *DESCRIPTION
 9bd9d9adb5eb5e0bcc55ce0b56df70c8 *NAMESPACE
-694d526456d5296372596d2e6cca1aed *NEWS.md
+81958891074f3a000165987e165782e7 *NEWS.md
 0c128a11bd222942b9fcb5e67ddd2f3d *R/QR.break-package.R
 2f8d813a1eb019b32803b0706e636a3d *R/brdate.R
 0c90c8948222315a67029f47e208cadb *R/ci.date.m.R
@@ -20,7 +20,7 @@ ce044789946271af40592fc4fbac66ac *R/input.all.cv.R
 8bd1d92b7f2f20aa13d0e13027b95aff *R/moment.R
 a7f832f74259916d76188bb8ed6b7d32 *R/partition.R
 6fb52c3c3a78a5078c452f2a7efb8883 *R/res.surface.R
-ce719e234a7fdfc4a0ba3a1be43bb3a7 *R/rq.break.R
+d6a128e21f1fc60601a4fdde8ac1cb3b *R/rq.break.R
 d6a9b75c22658c6672bbd55126ea6d15 *R/rq.est.full.R
 50d7cad5319cb579672e6bbe7e1ebc7e *R/rq.est.regime.R
 a53be3c2774c81d5b7d19ada714336f7 *R/sample.split.R
@@ -28,7 +28,7 @@ e41c459d8ab5270e66606fe09956dbbd *R/sq.R
 e7b6fa47c8eb474e6034a5df37eae39d *R/sq.test.0vs1.R
 f54616bb670b6d1043e7c9687d0e94df *R/sq.test.lvsl_1.R
 7ee14db1c762257a10d31f420cc77c27 *R/vec.prob.DQ.R
-61e9823c25c69ff226ef726b41debbf5 *README.md
+9c36b4f872162cce030838ffa573cdb3 *README.md
 7d0c17a2b7399aecb0a46c147ecf667e *data/driver.rda
 6575f965029d9fc82ee17193b093aeda *data/gdp.rda
 53c2f7625e6da30272512e5c00e37aac *man/QR.break.Rd

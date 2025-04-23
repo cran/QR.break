@@ -192,7 +192,7 @@ rq.break = function(y, x, vec.tau, N=1, trim.e, vec.time, m.max, v.a, v.b, verbo
 
         if (verbose){
         cat('--- Break testing results at the', vec.level[v.a],'% significance level---\n' )
-        cat('(Note: The k-th column and beyond may display zero if the (k-1)-th break is already insignificant)\n')
+        cat('(Note: The k-th column and beyond display zero if the (k-1)-th break is insignificant at 10% level)\n')
         }
         # Determine the number of columns dynamically
         num_cols <- length(out.s$test)  # Assuming test and cv have the same number of columns
@@ -310,7 +310,7 @@ rq.break = function(y, x, vec.tau, N=1, trim.e, vec.time, m.max, v.a, v.b, verbo
                 print(format(coef_subset, digits = 4), quote = FALSE)
                 cat('  \n')
                 }
-                name_coef <- paste0("bsize_", v.tau,'_Regime_', (j + 1), '_minus Regime_', j)
+                name_coef <- paste0("bsize_", v.tau,'_Regime_', (j + 1), '_minus_Regime_', j)
                 s.out[[name_coef]]<-result$coef[beg01:end01,]
                 rownames(s.out[[name_coef]]) <- c("Intercept", paste0("x", seq_len(nrow(result$coef[beg01:end01,]) - 1)))
 
@@ -354,6 +354,8 @@ rq.break = function(y, x, vec.tau, N=1, trim.e, vec.time, m.max, v.a, v.b, verbo
     n.break = out.m$nbreak[v.a]
     if (verbose){
         cat('----- Break testing results at the', vec.level[v.a], '% significance level: ----\n' )
+        cat('(Note: The k-th column and beyond display zero if the (k-1)-th break is insignificant at 10% level)\n')
+      
     }
         # Determine the number of columns dynamically
         num_cols <- length(out.m$test)  # Assuming test and cv have the same number of columns
@@ -436,7 +438,8 @@ rq.break = function(y, x, vec.tau, N=1, trim.e, vec.time, m.max, v.a, v.b, verbo
             cat ('[rows: intercept, first regressor, second regressor...] \n')
             }
             coef.est<-rq.est.regime(y, x, v.tau, vec.date, n.size)
-            name_coef <- paste0("coef")
+            #name_coef <- paste0("coef") #update version 1.0.2
+            name_coef <- paste0("coef_", v.tau)
             m.out[[name_coef]] <- coef.est
 
             if (verbose){
@@ -471,7 +474,7 @@ rq.break = function(y, x, vec.tau, N=1, trim.e, vec.time, m.max, v.a, v.b, verbo
                 print(format(coef_subset, digits = 4), quote = FALSE)
                 cat('  \n')
                 }
-                name_coef <- paste0("bsize_", v.tau,'_Regime_', (j + 1), '_minus Regime_', j)
+                name_coef <- paste0("bsize_", v.tau,'_Regime_', (j + 1), '_minus_Regime_', j)
                 m.out[[name_coef]]<-result$coef[beg01:end01,]
                 rownames(m.out[[name_coef]]) <- c("Intercept", paste0("x", seq_len(nrow(result$coef[beg01:end01,]) - 1)))
             }

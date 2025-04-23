@@ -36,10 +36,11 @@ vec.time = gdp[,"yq"]
 m.max = 3
 v.a = 2
 v.b = 2
+verbose = TRUE #print
 options(warn=-1) #sometimes fit is non-unique
 
 ## Structural breaks in quantile regression
-result = rq.break(y, x, vec.tau, N, trim.e, vec.time, m.max, v.a, v.b)
+result = rq.break(y, x, vec.tau, N, trim.e, vec.time, m.max, v.a, v.b, verbose)
 
 print(result)
 
@@ -58,8 +59,9 @@ vec.time <- unique(Driving_data[,"yq"])
 m.max <- 3
 v.a <-2
 v.b <-2
+verbose = TRUE #print
 options(warn=-1) #sometimes fit is non-unique
-result <- rq.break(y, x, vec.tau, N, trim.e, vec.time, m.max, v.a, v.b)
+result <- rq.break(y, x, vec.tau, N, trim.e, vec.time, m.max, v.a, v.b, verbose)
 
 
 ```
@@ -75,6 +77,6 @@ result <- rq.break(y, x, vec.tau, N, trim.e, vec.time, m.max, v.a, v.b)
 
 ## References
 
-- Qu, Z. (2008). Testing for Structural Change in Regression Quantiles. Journal of Econometrics, 146(1), 170-184.
-- Oka, T., & Qu, Z. (2011). Estimating Structural Changes in Regression Quantiles. Journal of Econometrics, 162(2), 248-267.
+- Qu, Z. (2008). "Testing for Structural Change in Regression Quantiles". Journal of Econometrics, 146(1), 170-184.
+- Oka, T., & Qu, Z. (2011). "Estimating Structural Changes in Regression Quantiles". Journal of Econometrics, 162(2), 248-267.
 
