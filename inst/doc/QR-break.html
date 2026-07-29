@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Zhongjun Qu, Tatsushi Oka, and Samuel Messer" />
+
+<meta name="date" content="2026-07-29" />
+
+<title>QR.break: An R Package for Structural Breaks in Quantile Regression</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">QR.break: An R Package for Structural
+Breaks in Quantile Regression</h1>
+<h4 class="author">Zhongjun Qu, Tatsushi Oka, and Samuel Messer</h4>
+<h4 class="date">2026-07-29</h4>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#introduction" id="toc-introduction">1.
+Introduction</a></li>
+<li><a href="#methods-for-estimation-and-inference" id="toc-methods-for-estimation-and-inference">2. Methods for estimation
+and inference</a>
+<ul>
+<li><a href="#econometric-models-and-issues-of-interest" id="toc-econometric-models-and-issues-of-interest">2.1 Econometric
+models and issues of interest</a></li>
+<li><a href="#estimating-break-locations-based-on-a-single-quantile" id="toc-estimating-break-locations-based-on-a-single-quantile">2.2
+Estimating break locations based on a single quantile</a></li>
+<li><a href="#estimating-break-locations-based-on-multiple-quantiles" id="toc-estimating-break-locations-based-on-multiple-quantiles">2.3
+Estimating break locations based on multiple quantiles</a></li>
+<li><a href="#determining-the-number-of-breaks" id="toc-determining-the-number-of-breaks">2.4 Determining the number of
+breaks</a></li>
+<li><a href="#inference-on-quantile-regression-coefficients-after-estimating-the-breaks" id="toc-inference-on-quantile-regression-coefficients-after-estimating-the-breaks">2.5
+Inference on quantile regression coefficients after estimating the
+breaks</a></li>
+<li><a href="#normalization-of-the-subgradient-process-version-1.0.3" id="toc-normalization-of-the-subgradient-process-version-1.0.3">2.6
+Normalization of the subgradient process (version 1.0.3)</a></li>
+</ul></li>
+<li><a href="#using-the-main-function" id="toc-using-the-main-function">3. Using the main function</a>
+<ul>
+<li><a href="#arguments" id="toc-arguments">3.1 Arguments</a></li>
+<li><a href="#how-the-data-must-be-arranged" id="toc-how-the-data-must-be-arranged">3.2 How the data must be
+arranged</a></li>
+<li><a href="#the-return-object" id="toc-the-return-object">3.3 The
+return object</a></li>
+</ul></li>
+<li><a href="#application-1-a-time-series-u.s.-real-gdp-growth" id="toc-application-1-a-time-series-u.s.-real-gdp-growth">4. Application
+1: a time series — U.S. real GDP growth</a>
+<ul>
+<li><a href="#the-data" id="toc-the-data">4.1 The data</a></li>
+<li><a href="#setting-the-inputs" id="toc-setting-the-inputs">4.2
+Setting the inputs</a></li>
+<li><a href="#running-the-function" id="toc-running-the-function">4.3
+Running the function</a></li>
+<li><a href="#output-based-on-separate-quantiles" id="toc-output-based-on-separate-quantiles">4.4 Output based on separate
+quantiles</a></li>
+<li><a href="#output-based-on-multiple-quantiles" id="toc-output-based-on-multiple-quantiles">4.5 Output based on multiple
+quantiles</a></li>
+<li><a href="#a-picture" id="toc-a-picture">4.6 A picture</a></li>
+<li><a href="#comparing-the-two-normalizations" id="toc-comparing-the-two-normalizations">4.7 Comparing the two
+normalizations</a></li>
+<li><a href="#computational-time" id="toc-computational-time">4.8
+Computational time</a></li>
+<li><a href="#potential-error-messages" id="toc-potential-error-messages">4.9 Potential error messages</a></li>
+</ul></li>
+<li><a href="#application-2-repeated-cross-sections-youth-drinking-and-driving" id="toc-application-2-repeated-cross-sections-youth-drinking-and-driving">5.
+Application 2: repeated cross-sections — youth drinking and driving</a>
+<ul>
+<li><a href="#the-data-1" id="toc-the-data-1">5.1 The data</a></li>
+<li><a href="#running-the-function-1" id="toc-running-the-function-1">5.2 Running the function</a></li>
+<li><a href="#output-based-on-separate-quantiles-1" id="toc-output-based-on-separate-quantiles-1">5.3 Output based on
+separate quantiles</a></li>
+<li><a href="#output-based-on-multiple-quantiles-1" id="toc-output-based-on-multiple-quantiles-1">5.4 Output based on
+multiple quantiles</a></li>
+</ul></li>
+<li><a href="#working-with-the-individual-functions" id="toc-working-with-the-individual-functions">6. Working with the
+individual functions</a>
+<ul>
+<li><a href="#a-single-test-at-a-single-quantile" id="toc-a-single-test-at-a-single-quantile">6.1 A single test at a
+single quantile</a></li>
+<li><a href="#estimation-given-break-dates" id="toc-estimation-given-break-dates">6.2 Estimation given break
+dates</a></li>
+<li><a href="#the-search-itself" id="toc-the-search-itself">6.3 The
+search itself</a></li>
+</ul></li>
+<li><a href="#practical-notes" id="toc-practical-notes">7. Practical
+notes</a></li>
+<li><a href="#references" id="toc-references">References</a></li>
+</ul>
+</div>
+
+<blockquote>
+<p>This vignette follows Qu, Oka and Messer, <em>“QR.break: An R Package
+for Structural Breaks in Quantile Regression”</em>, which should be
+consulted for further detail. It outlines the methods implemented in the
+package and then works through the two datasets: a time series on U.S.
+real GDP growth and a repeated cross-section on youth drinking and
+driving. All numerical output shown here was produced with version 1.0.3
+of the package.</p>
+</blockquote>
+<div id="introduction" class="section level2">
+<h2>1. Introduction</h2>
+<p>The issue of structural breaks has been extensively studied. Much of
+the literature has focused on the conditional mean, but in many cases
+structural change in the conditional quantile function is more
+informative. For example, in studying income inequality, it is important
+to assess whether the wage gap between racial groups, conditional on
+covariates, has changed over time. Inequality may increase conditional
+dispersion without affecting the mean. Similarly, when evaluating a
+policy aimed at improving outcomes for low-performing students,
+attention should focus on lower quantiles. In both cases it is desirable
+to estimate break dates from the data: in the former, the cause of
+change may be unclear a priori; in the latter, the policy effect may
+exhibit an unknown time lag.</p>
+<p>To address these issues, Qu (2008) and Su and Xiao (2008) developed
+tests for detecting structural change in conditional quantile functions
+with unknown break dates, but did not consider estimation and inference
+for the number of breaks or their locations. Oka and Qu (2011) studied
+the estimation of multiple structural breaks at unknown dates in
+conditional quantile functions for two models: a time series model,
+useful for analyzing macroeconomic data, and a repeated cross-section
+model, relevant for evaluating social programs and policy effects. Their
+framework allows for structural change in single or multiple quantiles.
+Analyzing multiple quantiles requires stronger assumptions but can
+improve estimation efficiency.</p>
+<p>Key aspects of Oka and Qu’s (2011) procedure are as follows. Assuming
+a known number of breaks, the methods construct estimates of break dates
+and coefficients as global minimizers of the check function over
+admissible break points. For multiple quantiles, the check function is
+integrated over the set of quantiles chosen by the user. The assumptions
+permit dynamic models and impose restrictions only in neighborhoods
+around the quantiles of interest, leaving other quantiles unspecified.
+This flexibility allows researchers to examine slices of the conditional
+distribution without imposing global distributional assumptions. The
+distributions of the break estimators were derived following Picard
+(1985) and Yao (1987); they involve consistently estimable parameters,
+which enables confidence interval construction without simulation. Oka
+and Qu (2011) also propose a test for the number of breaks based on the
+subgradient methods of Qu (2008). These tests do not require variance
+estimation and have monotonic power even with multiple breaks.</p>
+<p>The package’s main function, <code>rq.break()</code>, returns all
+testing and estimation results based on user-specified quantiles of
+interest, the maximum number of allowed breaks, and the minimum length
+of a single regime:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">rq.break</span>(y, x, vec.tau, N, trim.e, vec.time, m.max, v.a, v.b,</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>                   verbose, norm.method)</span></code></pre></div>
+<p>We illustrate the function through the two empirical examples of Oka
+and Qu (2011). The first revisits the “Great Moderation” in U.S. GDP
+growth using quarterly data; the results suggest the decline in
+volatility mainly affected the upper tail, with the median and lower
+quantiles remaining stable, implying that expansions became less rapid
+while recessions remained as severe. The second analyzes blood alcohol
+levels of young drivers in California from 1983 to 2007; two breaks are
+detected, consistent with the 1984 National Minimum Drinking Age Act and
+a 1991 beer tax increase, with effects more pronounced at lower
+quantiles, indicating a greater impact on lighter drinkers than on
+heavier ones.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(QR.break)</span></code></pre></div>
+</div>
+<div id="methods-for-estimation-and-inference" class="section level2">
+<h2>2. Methods for estimation and inference</h2>
+<p>This section explains (1) the model and the econometric issues of
+interest; (2) estimating break locations and regression coefficients
+when the number of breaks is known, based on a single quantile; (3) the
+same based on multiple quantiles; (4) a procedure for determining the
+number of breaks; and (5) inference on quantile regression coefficients
+after estimating the breaks. Section 2.6 covers the normalization option
+introduced in package version 1.0.3.</p>
+<div id="econometric-models-and-issues-of-interest" class="section level3">
+<h3>2.1 Econometric models and issues of interest</h3>
+<div id="the-model" class="section level4">
+<h4>2.1.1 The model</h4>
+<p>Let <span class="math inline">\(y_{it}\)</span> be the outcome for
+unit <span class="math inline">\(i\)</span> in period <span class="math inline">\(t\)</span>, <span class="math inline">\(x_{it}\)</span> a <span class="math inline">\(p\)</span>-dimensional vector of covariates, and
+<span class="math inline">\(Q_{y_{it}}(\tau \mid x_{it})\)</span> the
+conditional <span class="math inline">\(\tau\)</span>-quantile of <span class="math inline">\(y_{it}\)</span> given <span class="math inline">\(x_{it}\)</span>. Let <span class="math inline">\(N\)</span> be the number of cross-sectional units,
+assumed constant over time, and <span class="math inline">\(T\)</span>
+the number of periods. For a single time series <span class="math inline">\(N = 1\)</span> and the index <span class="math inline">\(i\)</span> is dropped throughout. Assume the
+conditional quantile function is linear and potentially affected by
+<span class="math inline">\(m\)</span> structural breaks:</p>
+<p><span class="math display">\[
+Q_{y_{it}}(\tau \mid x_{it})=
+\begin{cases}
+x_{it}^{\prime }\beta _{1}^{0}(\tau ), &amp; t=1,\dots ,T_{1}^{0}, \\
+x_{it}^{\prime }\beta _{2}^{0}(\tau ), &amp; t=T_{1}^{0}+1,\dots
+,T_{2}^{0}, \\
+\qquad \vdots &amp; \qquad \vdots \\
+x_{it}^{\prime }\beta _{m+1}^{0}(\tau ), &amp; t=T_{m}^{0}+1,\dots ,T,
+\end{cases}
+\]</span></p>
+<p>where <span class="math inline">\(\tau \in (0,1)\)</span>, the <span class="math inline">\(\beta_j^0(\tau)\)</span> <span class="math inline">\((j = 1,\dots,m+1)\)</span> are unknown parameters,
+and the <span class="math inline">\(T_j^0\)</span> <span class="math inline">\((j = 1,\dots,m)\)</span> are unknown break dates.
+The regressors may include discrete as well as continuous variables.
+<strong>A column of ones is automatically added to the regression when
+applying the methods.</strong></p>
+</div>
+<div id="examples" class="section level4">
+<h4>2.1.2 Examples</h4>
+<p>The following examples, taken from Oka and Qu (2011), illustrate the
+model.</p>
+<p><strong>Example 1 (time series).</strong> Oka and Qu (2011) studied a
+quantile autoregression for U.S. quarterly real GDP growth rates over
+1947:Q2 to 2009:Q2, in which the regressors are lagged values of the
+growth rate and the intercept and autoregressive coefficients are
+allowed to shift across regimes. They detect a structural break in 1984
+that affects only the upper quantiles of the distribution. The
+coefficient estimates suggest that growth was slower during expansions,
+while recessions remained just as severe when they occurred. This
+dataset is included in the package and is used in Section 4.</p>
+<p><strong>Example 2 (repeated cross-sections).</strong> Motor vehicle
+crashes are the leading cause of death among youth aged 15–20, a high
+proportion of which involve drunk driving. Blood alcohol concentration
+(BAC) is a key measure of alcohol impairment, and changes in BAC among
+young drivers provide useful information on how their drinking behavior
+has changed over time. Oka and Qu (2011) studied structural change in
+BAC among young drivers involved in traffic accidents, using age,
+gender, and a dummy for the fourth quarter as regressors. They detect
+breaks in 1985 and 1992. The changes are negative and meaningful in
+magnitude; however, the change is smaller for higher quantiles,
+suggesting the policies are more effective for “light drinkers” than for
+“heavy drinkers” in the sample. This is encouraging but falls short of
+expectations, as heavy drinkers are more likely to cause accidents,
+suggesting that additional policies are needed to deter heavy drinking.
+This dataset is included in the package and is used in Section 5.</p>
+</div>
+<div id="econometric-issues-of-interest" class="section level4">
+<h4>2.1.3 Econometric issues of interest</h4>
+<p>The methods address the following issues.</p>
+<ol style="list-style-type: decimal">
+<li><p><strong>Estimation based on a single quantile when the number of
+breaks is known.</strong> The method estimates both the break locations
+and the regression coefficients. If the user specifies more than one
+quantile level, the analysis is performed independently for each
+quantile, allowing break locations to differ across quantiles. The
+program returns the estimated break locations, their confidence
+intervals, and the corresponding estimates and intervals for the
+regression coefficients.</p></li>
+<li><p><strong>Estimation based on multiple quantiles when the number of
+breaks is known.</strong> Here the break locations are assumed common
+across quantiles and are estimated using information from all specified
+quantiles. The program returns the same set of objects.</p></li>
+<li><p><strong>Selection of the number of breaks.</strong> The user
+specifies the maximum number of breaks, and the program determines the
+number of breaks using a dynamic programming algorithm.</p></li>
+</ol>
+<p>A single main function performs all of these tasks.</p>
+</div>
+</div>
+<div id="estimating-break-locations-based-on-a-single-quantile" class="section level3">
+<h3>2.2 Estimating break locations based on a single quantile</h3>
+<p>Suppose the <span class="math inline">\(\tau\)</span>th quantile is
+affected by <span class="math inline">\(m\)</span> structural changes.
+For a set of candidate break dates <span class="math inline">\(T^b =
+(T_1,\dots,T_m)\)</span>, the break dates and the coefficients are
+estimated jointly by minimizing the check function over admissible
+partitions:</p>
+<p><span class="math display">\[
+(\hat{\beta}(\tau ),\hat{T}^{b})=\arg \min_{\beta (\tau ),\,T^{b}\in
+\Lambda
+_{\varepsilon }}\ \sum_{j=0}^{m}\ \sum_{t=T_{j}+1}^{T_{j+1}}\
+\sum_{i=1}^{N}\rho
+_{\tau }(y_{it}-x_{it}^{\prime }\beta _{j+1}(\tau )),
+\]</span></p>
+<p>where <span class="math inline">\(\rho_\tau(u) = u(\tau - 1(u &lt;
+0))\)</span> is the check function (Koenker, 2005), <span class="math inline">\(\beta(\tau) =
+(\beta_1(\tau)&#39;,\dots,\beta_{m+1}(\tau)&#39;)&#39;\)</span>, <span class="math inline">\(T_0 = 0\)</span>, <span class="math inline">\(T_{m+1} = T\)</span>, and the summation over <span class="math inline">\(i\)</span> is absent for a single time series. The
+set <span class="math inline">\(\Lambda_\varepsilon\)</span> collects
+the admissible partitions, ensuring each estimated regime is a positive
+fraction of the sample: every regime must be at least <span class="math inline">\(\varepsilon T\)</span> periods long, and no break
+may fall within <span class="math inline">\(\varepsilon T\)</span> of
+either end of the sample. The user specifies <span class="math inline">\(\varepsilon\)</span> through the argument
+<code>trim.e</code>.</p>
+<p>The computation is carried out using a dynamic programming algorithm
+as in Bai and Perron (2003), so that <strong>the computation is of order
+<span class="math inline">\(O(T^2)\)</span> irrespective of the number
+of breaks allowed in the model</strong>.</p>
+</div>
+<div id="estimating-break-locations-based-on-multiple-quantiles" class="section level3">
+<h3>2.3 Estimating break locations based on multiple quantiles</h3>
+<p>Suppose the quantiles in <span class="math inline">\(\mathcal{T}_\omega = [\omega_1, \omega_2]\)</span>
+with <span class="math inline">\(0 &lt; \omega_1 &lt; \omega_2 &lt;
+1\)</span> are affected by structural changes. A natural approach is to
+consider a partition of this interval, examine a set of quantiles <span class="math inline">\(\tau_h\)</span>, <span class="math inline">\(h =
+1,\dots,q\)</span>, and minimize the check function summed over them as
+well:</p>
+<p><span class="math display">\[
+(\hat{\beta}(\mathcal{T}_{\omega }),\hat{T}^{b})=\arg \min_{\beta
+(\mathcal{T}%
+_{\omega }),\,T^{b}\in \Lambda _{\varepsilon }}\ \sum_{h=1}^{q}\
+\sum_{j=0}^{m}\
+\sum_{t=T_{j}+1}^{T_{j+1}}\ \sum_{i=1}^{N}\rho _{\tau
+_{h}}(y_{it}-x_{it}^{\prime
+}\beta _{j+1}(\tau _{h})),
+\]</span></p>
+<p>with <span class="math inline">\(\Lambda_\varepsilon\)</span> as
+before. The estimated break dates are now common across quantiles, while
+the coefficients remain quantile-specific. Regarding the partition,
+<strong>a coarse partition, such as quantiles spaced by 0.1, is
+sufficient to deliver informative results.</strong> The computation is
+once more <span class="math inline">\(O(T^2)\)</span> irrespective of
+the number of breaks allowed.</p>
+<p>For all cases above, confidence intervals for the break dates are
+computed from the limiting distribution of the break point estimates
+derived in Oka and Qu (2011). <strong>That distribution has an
+analytical density function, so no simulation is needed to obtain the
+critical values</strong>, which keeps the computational cost down; see
+Bai (1995) and Oka and Qu (2011) for details.</p>
+</div>
+<div id="determining-the-number-of-breaks" class="section level3">
+<h3>2.4 Determining the number of breaks</h3>
+<p>The package uses the two test statistics <span class="math inline">\(SQ_\tau\)</span> (single quantile) and <span class="math inline">\(DQ\)</span> (multiple quantiles) proposed in Qu
+(2008).</p>
+<div id="testing-for-a-single-structural-break" class="section level4">
+<h4>2.4.1 Testing for a single structural break</h4>
+<p>The <span class="math inline">\(SQ_\tau\)</span> test detects the
+presence of a structural break in a given quantile <span class="math inline">\(\tau\)</span>:</p>
+<p><span class="math display">\[
+SQ_{\tau }=\sup_{\lambda \in \lbrack 0,1]}\left\Vert (\tau (1-\tau
+))^{-1/2}\left[ H_{\lambda ,T}(\hat{\beta}(\tau ))-\lambda
+H_{1,T}(\hat{\beta}%
+(\tau ))\right] \right\Vert _{\infty },
+\]</span></p>
+<p>where</p>
+<p><span class="math display">\[
+H_{\lambda ,T}(\hat{\beta}(\tau ))=\left(
+\sum_{t=1}^{T}\sum_{i=1}^{N}x_{it}x_{it}^{\prime }\right)
+^{-1/2}\sum_{t=1}^{%
+[\lambda T]}\sum_{i=1}^{N}x_{it}\psi _{\tau }(y_{it}-x_{it}^{\prime
+}\hat{\beta}%
+(\tau )),
+\]</span></p>
+<p>with <span class="math inline">\(\psi_\tau(u) = \tau - 1(u &lt;
+0)\)</span> and, as before, the summation over <span class="math inline">\(i\)</span> absent for a single time series. Here
+<span class="math inline">\(\hat\beta(\tau)\)</span> is the full-sample
+estimate assuming no structural change, and <span class="math inline">\(\|\cdot\|_\infty\)</span> is the sup norm,
+revealing the strongest evidence against the null.</p>
+<p>The <span class="math inline">\(DQ\)</span> test detects structural
+changes in quantiles in an interval <span class="math inline">\(\mathcal{T}_\omega\)</span>, taking a further
+supremum over <span class="math inline">\(\tau\)</span>:</p>
+<p><span class="math display">\[
+DQ=\sup_{\tau \in \mathcal{T}_{\omega }}\sup_{\lambda \in \lbrack
+0,1]}\left\Vert H_{\lambda ,T}(\hat{\beta}(\tau ))-\lambda
+H_{1,T}(\hat{\beta}%
+(\tau ))\right\Vert _{\infty }.
+\]</span></p>
+<p>These correspond to the exported functions
+<code>sq.test.0vs1()</code> and <code>dq.test.0vs1()</code>.</p>
+</div>
+<div id="testing-l-against-l1-breaks" class="section level4">
+<h4>2.4.2 Testing <span class="math inline">\(l\)</span> against <span class="math inline">\(l+1\)</span> breaks</h4>
+<p>Suppose a model with <span class="math inline">\(l\)</span> breaks
+has been estimated, with break estimates <span class="math inline">\(\hat{T}_1,\dots,\hat{T}_l\)</span>. These
+partition the sample into <span class="math inline">\(l+1\)</span>
+segments, the <span class="math inline">\(j\)</span>th being <span class="math inline">\([\hat{T}_{j-1}+1, \hat{T}_j]\)</span>. The
+strategy tests each of the <span class="math inline">\(l+1\)</span>
+segments for the presence of an additional break. Letting <span class="math inline">\(SQ_{\tau,j}\)</span> and <span class="math inline">\(DQ_j\)</span> denote the tests applied to the
+<span class="math inline">\(j\)</span>th segment,</p>
+<p><span class="math display">\[
+SQ_{\tau }(l+1\mid l)=\max_{1\leq j\leq l+1}SQ_{\tau ,j},\qquad
+DQ(l+1\mid
+l)=\max_{1\leq j\leq l+1}DQ_{j},
+\]</span></p>
+<p>where the segment statistics replace the full-sample sums by sums
+running from <span class="math inline">\(T_{j-1}+1\)</span> to <span class="math inline">\(T_j\)</span>, and <span class="math inline">\(\hat\beta_j(\tau)\)</span> is estimated using the
+<span class="math inline">\(j\)</span>th regime only. We reject the null
+in favor of a model with <span class="math inline">\(l+1\)</span> breaks
+if the resulting value exceeds the corresponding critical value. These
+correspond to <code>sq.test.lvsl_1()</code> and
+<code>dq.test.lvsl_1()</code>.</p>
+</div>
+<div id="critical-values" class="section level4">
+<h4>2.4.3 Critical values</h4>
+<p>These tests are asymptotically nuisance parameter free, and tables of
+critical values are provided in Qu (2008). They do not require the
+estimation of any variance parameter, hence have monotonic power even
+when multiple breaks are present.</p>
+<p>The package has built-in critical values for common configurations:
+for the <span class="math inline">\(SQ\)</span> test when the number of
+coefficients is below 100, and for the <span class="math inline">\(DQ\)</span> test when the number of coefficients
+is below 20 and the quantile trimming is symmetric (<span class="math inline">\(\omega_2 = 1 - \omega_1\)</span>), via a response
+surface (<code>res.surface()</code>). Outside those cases — asymmetric
+trimming, more than 20 coefficients, or <code>m.max</code> above 5 — the
+<span class="math inline">\(DQ\)</span> critical values are computed by
+simulation, which can add a few minutes or more to the running time.</p>
+</div>
+<div id="the-recommended-procedure" class="section level4">
+<h4>2.4.4 The recommended procedure</h4>
+<p>Consider the interval <span class="math inline">\(\mathcal{T}_\omega\)</span> and the quantile grid
+<span class="math inline">\(\tau_1,\dots,\tau_q \in
+\mathcal{T}_\omega\)</span>.</p>
+<ul>
+<li><strong>Step 1.</strong> Apply the <span class="math inline">\(DQ\)</span> test. If it does not reject, conclude
+there is no break and terminate. If it rejects, estimate the model
+allowing one break, save the estimated break date, and proceed.</li>
+<li><strong>Step 2.</strong> Apply the <span class="math inline">\(DQ(l+1 \mid l)\)</span> tests starting with <span class="math inline">\(l = 1\)</span>. Increase <span class="math inline">\(l\)</span> if the test rejects. At each stage the
+model is re-estimated and the break dates are global minimizers of the
+objective function allowing <span class="math inline">\(l\)</span>
+breaks. Continue until the test fails to reject.</li>
+<li><strong>Step 3.</strong> Let <span class="math inline">\(\hat{l}\)</span> denote the first value for which
+the test fails to reject. Estimate the model allowing <span class="math inline">\(\hat{l}\)</span> breaks. Save the estimated break
+dates and confidence intervals.</li>
+<li><strong>Step 4.</strong> Treat the <span class="math inline">\(q\)</span> quantiles separately: for every <span class="math inline">\(\tau_h\)</span>, apply the <span class="math inline">\(SQ_\tau\)</span> and <span class="math inline">\(SQ_\tau(l+1 \mid l)\)</span> tests, carrying out
+Steps 1–3. Examine whether the estimated breaks agree with those from
+Step 3.</li>
+</ul>
+<p><code>rq.break()</code> prints the single-quantile analysis first and
+the joint analysis second, which is the order of computation rather than
+the order of reading. When interpreting output, consider follow the
+steps above.</p>
+</div>
+</div>
+<div id="inference-on-quantile-regression-coefficients-after-estimating-the-breaks" class="section level3">
+<h3>2.5 Inference on quantile regression coefficients after estimating
+the breaks</h3>
+<p>After determining the break dates, the coefficients are estimated
+conditional on those dates. This is equivalent to partitioning the
+sample using the break dates and running standard quantile regression on
+each subsample. These results are reported automatically by the main
+function.</p>
+<p>Oka and Qu (2011) showed that if the break size is of higher order
+than <span class="math inline">\(T^{-1/2}\)</span>, so that breaks are
+not confounded with estimation uncertainty of order <span class="math inline">\(T^{-1/2}\)</span>, then the break dates are
+estimated fast enough that the asymptotic distribution of the estimated
+coefficients is the same as if the break dates were known — a familiar
+result in the structural break literature. This permits computing
+confidence intervals treating the estimated break dates as known. The
+asymptotic variance involves the within-regime second moment matrix of
+the regressors and the same matrix weighted by the conditional density
+of the dependent variable at the quantile of interest; the density is
+estimated by a difference quotient, as described in Qu (2008,
+pp. 176–177). Instead of using the package, users can obtain the same
+confidence intervals directly from the <strong>quantreg</strong> package
+with the standard error option set to <code>&quot;nid&quot;</code>.</p>
+</div>
+<div id="normalization-of-the-subgradient-process-version-1.0.3" class="section level3">
+<h3>2.6 Normalization of the subgradient process (version 1.0.3)</h3>
+<p>The <span class="math inline">\(SQ\)</span> and <span class="math inline">\(DQ\)</span> statistics normalize the subgradient
+process by an inverse square root of <span class="math inline">\(W =
+\sum_t \sum_i x_{it} x_{it}&#39;\)</span> (the sums over <span class="math inline">\(i\)</span> being absent for a single time series).
+Such a matrix is not unique, and the argument <code>norm.method</code>
+selects which one is used.</p>
+<p><strong><code>&quot;cholesky&quot;</code></strong> (the default) uses <span class="math inline">\((R&#39;)^{-1}\)</span>, where <span class="math inline">\(R\)</span> is the Cholesky factor returned by
+<code>chol()</code>, with <span class="math inline">\(R&#39;R =
+W\)</span>. This reproduces the results of versions 1.0.2 and earlier
+exactly. Because the factor is constructed sequentially, it implicitly
+gives more weight to regressors appearing earlier in the regression. It
+is suitable when there is a natural ordering — for instance a quantile
+autoregression in which low lags are listed first, as in the GDP
+application. It is invariant to the units in which the regressors are
+measured and to their signs.</p>
+<p><strong><code>&quot;spectral&quot;</code></strong> uses <span class="math inline">\(C^{-1/2}D^{-1}\)</span>, where <span class="math inline">\(D =
+\mathrm{diag}(\sqrt{\mathrm{diag}(W)})\)</span> and <span class="math inline">\(C = D^{-1}WD^{-1}\)</span> is the correlation
+matrix of the regressors, with <span class="math inline">\(C^{-1/2}\)</span> its symmetric square root from
+the spectral decomposition (Kessy, Lewin and Strimmer, 2018). This
+treats the regressors symmetrically, yielding invariance to their order
+as well as to their units and signs. It is the appropriate choice when
+the regressors have no natural ordering, as with the age, gender and
+winter regressors of the second application.</p>
+<p>Both choices give the same limiting null distribution, so the same
+critical values apply and both tests are valid. The second option might
+yield lower power. <strong>Estimated break dates are unaffected by this
+argument</strong>, since they are obtained by minimizing the check
+function, which does not depend on the normalization. A numerical
+comparison is given in Section 4.7.</p>
+<p>These invariance properties refer to the normalization itself.
+Because the quantile regression is re-estimated, the computed statistics
+can still differ slightly when the regressors are reordered or rescaled,
+by an amount that decreases with the sample size.</p>
+</div>
+</div>
+<div id="using-the-main-function" class="section level2">
+<h2>3. Using the main function</h2>
+<div id="arguments" class="section level3">
+<h3>3.1 Arguments</h3>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Argument</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>y</code></td>
+<td>The dependent variable, a vector of length <span class="math inline">\(NT\)</span></td>
+</tr>
+<tr class="even">
+<td><code>x</code></td>
+<td>The regressors, an <span class="math inline">\(NT \times p\)</span>
+matrix or data frame. A column of ones should <strong>not</strong> be
+included; it is added automatically</td>
+</tr>
+<tr class="odd">
+<td><code>vec.tau</code></td>
+<td>The quantiles of interest,
+e.g. <code>seq(0.1, 0.9, by = 0.1)</code>. A coarse grid is generally
+sufficient</td>
+</tr>
+<tr class="even">
+<td><code>N</code></td>
+<td>The size of the cross-section; set to 1 for time series data</td>
+</tr>
+<tr class="odd">
+<td><code>trim.e</code></td>
+<td>The minimum length of any regime as a fraction of the total time
+span. <strong>Values between 0.10 and 0.20 are recommended</strong></td>
+</tr>
+<tr class="even">
+<td><code>vec.time</code></td>
+<td>The time indices, of length <span class="math inline">\(T\)</span>,
+used for reporting the estimated break dates; or <code>NULL</code> to
+report indices</td>
+</tr>
+<tr class="odd">
+<td><code>m.max</code></td>
+<td>The maximum number of breaks allowed (at most 10)</td>
+</tr>
+<tr class="even">
+<td><code>v.a</code></td>
+<td>Significance level for determining the number of breaks: 1, 2 or 3
+for 10%, 5% or 1%</td>
+</tr>
+<tr class="odd">
+<td><code>v.b</code></td>
+<td>Coverage level for the confidence intervals of break dates: 1 or 2
+for 90% and 95%</td>
+</tr>
+<tr class="even">
+<td><code>verbose</code></td>
+<td><code>TRUE</code> displays results in the console; the default is
+<code>FALSE</code></td>
+</tr>
+<tr class="odd">
+<td><code>norm.method</code></td>
+<td><code>&quot;cholesky&quot;</code> (default) or <code>&quot;spectral&quot;</code>; see
+Section 2.6</td>
+</tr>
+</tbody>
+</table>
+<p>Whether or not <code>verbose</code> is set, all estimation and
+testing results are saved in the returned object.</p>
+</div>
+<div id="how-the-data-must-be-arranged" class="section level3">
+<h3>3.2 How the data must be arranged</h3>
+<p><code>y</code> is a single vector of length <span class="math inline">\(NT\)</span>, <strong>stacked by period</strong>:
+the first <span class="math inline">\(N\)</span> elements are the units
+observed in the first period, the next <span class="math inline">\(N\)</span> the second period, and so forth.
+<code>x</code> is stacked identically. For a time series <span class="math inline">\(N = 1\)</span> and <code>y</code> is simply the
+series in time order.</p>
+<p><code>vec.time</code> is different: it has length <span class="math inline">\(T\)</span>, not <span class="math inline">\(NT\)</span>, being one label per <em>period</em>.
+For repeated cross-sections use <code>unique()</code> to reduce the
+period column accordingly.</p>
+<p><strong>A break date is the final date of the existing regime, not
+the starting date of a new regime.</strong> An estimate of 1984 Q1 means
+the first regime ends in 1984 Q1 and the second begins in 1984 Q2.</p>
+</div>
+<div id="the-return-object" class="section level3">
+<h3>3.3 The return object</h3>
+<p>The result is a list with two components: <code>$s.out</code>, based
+on individual quantiles, and <code>$m.out</code>, based on all quantiles
+jointly. Entries in <code>$s.out</code> are ordered according to
+<code>vec.tau</code>, and for each quantile the break testing results
+come first; if at least one significant break is detected, the break
+locations and parameter estimates follow. Element names carry the
+quantile they refer to:</p>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Element</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>test_&lt;tau&gt;</code>, <code>test_joint</code></td>
+<td>Test statistics and critical values</td>
+</tr>
+<tr class="even">
+<td><code>nbreak_&lt;tau&gt;</code>, <code>nbreak_joint</code></td>
+<td>Number of breaks detected</td>
+</tr>
+<tr class="odd">
+<td><code>br_est_&lt;tau&gt;</code>, <code>br_est_joint</code></td>
+<td>Break dates and confidence intervals, as indices</td>
+</tr>
+<tr class="even">
+<td><code>br_est_time_&lt;tau&gt;</code>,
+<code>br_est_joint_time</code></td>
+<td>The same in calendar format</td>
+</tr>
+<tr class="odd">
+<td><code>coef_&lt;tau&gt;</code></td>
+<td>Regime-by-regime coefficient estimates</td>
+</tr>
+<tr class="even">
+<td><code>bsize_&lt;tau&gt;_Regime_j+1_minus_Regime_j</code></td>
+<td>Break sizes between adjacent regimes</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="application-1-a-time-series-u.s.-real-gdp-growth" class="section level2">
+<h2>4. Application 1: a time series — U.S. real GDP growth</h2>
+<div id="the-data" class="section level3">
+<h3>4.1 The data</h3>
+<p>After loading the package, the U.S. GDP data are loaded with
+<code>data(gdp)</code>. The <code>yq</code> column contains the dates,
+<code>gdp</code> the dependent variable, and the remaining two columns
+the first and second lagged values of <code>gdp</code>, used as
+regressors. The estimation sample runs from 1947 Q4 to 2009 Q2 — the raw
+series begins in 1947 Q2, with the first two observations consumed by
+the lags.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">data</span>(gdp)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">str</span>(gdp)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; &#39;data.frame&#39;:    247 obs. of  4 variables:</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt;  $ yq  : chr  &quot;1947 Q4&quot; &quot;1948 Q1&quot; &quot;1948 Q2&quot; &quot;1948 Q3&quot; ...</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt;  $ gdp : num  6.066 6.357 7.363 2.15 0.614 ...</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt;  $ lag1: num  -0.329 6.066 6.357 7.363 2.15 ...</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt;  $ lag2: num  -0.613 -0.329 6.066 6.357 7.363 ...</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="fu">head</span>(gdp, <span class="dv">3</span>)</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt;        yq     gdp     lag1     lag2</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; 1 1947 Q4 6.06552 -0.32868 -0.61348</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt; 2 1948 Q1 6.35664  6.06552 -0.32868</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt; 3 1948 Q2 7.36332  6.35664  6.06552</span></span></code></pre></div>
+</div>
+<div id="setting-the-inputs" class="section level3">
+<h3>4.2 Setting the inputs</h3>
+<p>The following commands define <code>y</code> and <code>x</code>:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>y <span class="ot">&lt;-</span> gdp[, <span class="st">&quot;gdp&quot;</span>]</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>x <span class="ot">&lt;-</span> gdp[, <span class="fu">c</span>(<span class="st">&quot;lag1&quot;</span>, <span class="st">&quot;lag2&quot;</span>)]</span></code></pre></div>
+<p>A column of ones is always added to the regressors, so the model has
+<strong>three</strong> parameters allowed to be affected by structural
+breaks: the intercept, the coefficient on the first lag, and that on the
+second lag.</p>
+<p>The next command specifies the quantiles of interest:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>vec.tau <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="fl">0.20</span>, <span class="fl">0.80</span>, <span class="at">by =</span> <span class="fl">0.15</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>vec.tau</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt; [1] 0.20 0.35 0.50 0.65 0.80</span></span></code></pre></div>
+<p>Given these inputs the function performs two sets of calculations.
+First it analyzes the quantiles in <code>vec.tau</code> independently,
+so the number of breaks and their locations may differ across quantiles.
+Then it analyzes all quantiles simultaneously, assuming breaks are
+common across quantiles and pooling information to estimate the break
+dates.</p>
+<p>Since this is a time series regression, <code>N = 1</code>. The
+minimum regime length matters because if a regime is too short the model
+fit may be non-unique and the estimation may pick up spurious breaks;
+<code>trim.e = 0.15</code> implies a regime is at least 15% of the
+sample, or 37 quarters. Related to this is the maximum number of breaks,
+<code>m.max = 3</code>, allowing at most three breaks and hence four
+regimes. Finally <code>v.a = 2</code> selects the 5% level for
+determining the number of breaks and <code>v.b = 2</code> selects 95%
+confidence intervals for the break dates.</p>
+<p>Setting <code>vec.time = gdp[, &quot;yq&quot;]</code> makes the program report
+break dates using those labels; setting it to <code>NULL</code> reports
+integers instead.</p>
+</div>
+<div id="running-the-function" class="section level3">
+<h3>4.3 Running the function</h3>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">rq.break</span>(y, x,</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>                <span class="at">vec.tau     =</span> vec.tau,</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>                <span class="at">N           =</span> <span class="dv">1</span>,</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>                <span class="at">trim.e      =</span> <span class="fl">0.15</span>,</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>                <span class="at">vec.time    =</span> gdp[, <span class="st">&quot;yq&quot;</span>],</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>                <span class="at">m.max       =</span> <span class="dv">3</span>,</span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>                <span class="at">v.a         =</span> <span class="dv">2</span>,</span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>                <span class="at">v.b         =</span> <span class="dv">2</span>,</span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>                <span class="at">verbose     =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a>                <span class="at">norm.method =</span> <span class="st">&quot;cholesky&quot;</span>)</span></code></pre></div>
+</div>
+<div id="output-based-on-separate-quantiles" class="section level3">
+<h3>4.4 Output based on separate quantiles</h3>
+<p>For <span class="math inline">\(\tau = 0.2\)</span> the results
+are:</p>
+<pre><code>$s.out$test_0.2                     # testing results at the chosen level
+                1 Breaks 2 Breaks 3 Breaks
+SQ test         1.423269 1.373012        0
+Critical values 1.529859 1.637547        0
+
+$s.out$nbreak_0.2                   # number of breaks detected
+[1] 0</code></pre>
+<p>For this quantile the test of no break against a single break equals
+1.423269, while the critical value is 1.529859. The value is
+insignificant at the chosen level, so no break is detected. The final
+column is zero because the test is not computed when the previous tests
+are insignificant at the 10% level. No break estimation results are
+produced.</p>
+<p>The results for the other quantiles also show insignificance until
+<span class="math inline">\(\tau = 0.65\)</span>. At that point one
+significant break is detected, followed by its confidence interval
+reported first as index values and then as dates:</p>
+<pre><code>$s.out$test_0.65
+                1 Breaks 2 Breaks 3 Breaks
+SQ test         1.817933 1.023126        0
+Critical values 1.529859 1.637547        0
+
+$s.out$nbreak_0.65
+[1] 1
+
+$s.out$br_est_0.65
+        Estimate CI_Lower_Bound CI_Upper_Bound
+Break 1      147             83            161
+
+$s.out$br_est_time_0.65
+        Estimate  CI_Lower_Bound CI_Upper_Bound
+Break 1 &quot;1984 Q2&quot; &quot;1968 Q2&quot;      &quot;1987 Q4&quot;</code></pre>
+<p>One break is detected with a point estimate of <span class="math inline">\(t = 147\)</span>, corresponding to the second
+quarter of 1984, with a confidence interval of <span class="math inline">\([83, 161]\)</span>, or equivalently [1968 Q2, 1987
+Q4]. The output also includes the estimated coefficients for the two
+regimes:</p>
+<pre><code>$s.out$coef_0.65$Regime_1
+               Value Std. Error   t value     Pr(&gt;|t|)
+Intercept  4.5169837 0.63003316  7.169438 3.625833e-11
+x1         0.4199469 0.09643037  4.354924 2.512308e-05
+x2        -0.1051057 0.09458095 -1.111277 2.683010e-01
+
+$s.out$coef_0.65$Regime_2
+              Value Std. Error  t value     Pr(&gt;|t|)
+Intercept 2.2855100  0.4866286 4.696620 8.711282e-06
+x1        0.1724133  0.1218581 1.414869 1.603091e-01
+x2        0.2386392  0.1320517 1.807164 7.383669e-02</code></pre>
+<p>The sum of the autoregressive coefficients changes little, but the
+intercept decreases significantly, indicating a notably lower 0.65
+quantile after the break:</p>
+<pre><code>$s.out$bsize_0.65_Regime_2_minus_Regime_1
+               Value Std. Error   t value    Pr(&gt;|t|)
+Intercept -2.2314737  0.7957371 -2.804285 0.005453863
+x1        -0.2475336  0.1375265 -1.799898 0.073127343
+x2         0.3437448  0.1418386  2.423492 0.016109478</code></pre>
+<p>The method similarly detects a break in the 0.80 quantile, where the
+pattern is sharper still:</p>
+<pre><code>$s.out$test_0.8
+                1 Breaks 2 Breaks 3 Breaks
+SQ test         2.170968 1.064567        0
+Critical values 1.529859 1.637547        0
+
+$s.out$br_est_time_0.8
+        Estimate  CI_Lower_Bound CI_Upper_Bound
+Break 1 &quot;1984 Q1&quot; &quot;1978 Q4&quot;      &quot;1990 Q1&quot;
+
+$s.out$bsize_0.8_Regime_2_minus_Regime_1
+               Value Std. Error   t value     Pr(&gt;|t|)
+Intercept -3.0893051  0.7719650 -4.001872 8.367631e-05
+x1        -0.2108298  0.1159821 -1.817778 7.033963e-02
+x2         0.4047554  0.1420980  2.848425 4.773147e-03</code></pre>
+<p>Collecting the number of breaks across quantiles:</p>
+<table>
+<thead>
+<tr class="header">
+<th><span class="math inline">\(\tau\)</span></th>
+<th>0.20</th>
+<th>0.35</th>
+<th>0.50</th>
+<th>0.65</th>
+<th>0.80</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(SQ_\tau\)</span> (1 break)</td>
+<td>1.423</td>
+<td>1.479</td>
+<td>1.001</td>
+<td>1.818</td>
+<td>2.171</td>
+</tr>
+<tr class="even">
+<td>5% critical value</td>
+<td>1.530</td>
+<td>1.530</td>
+<td>1.530</td>
+<td>1.530</td>
+<td>1.530</td>
+</tr>
+<tr class="odd">
+<td>Breaks detected</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<p>At the median the statistic is 1.001 against a critical value of
+1.530 — no evidence of a break at all — while the upper quantiles reject
+clearly.</p>
+</div>
+<div id="output-based-on-multiple-quantiles" class="section level3">
+<h3>4.5 Output based on multiple quantiles</h3>
+<p>The results are structured similarly, now based on all chosen
+quantiles:</p>
+<pre><code>$m.out$test_joint
+                 1 Breaks  2 Breaks 3 Breaks
+DQ test         1.0275870 0.5892746        0
+Critical values 0.9098714 0.9584567        0
+
+$m.out$nbreak_joint
+[1] 1
+
+$m.out$br_est_joint
+        Estimate CI_Lower_Bound CI_Upper_Bound
+Break 1      146            120            147
+
+$m.out$br_est_joint_time
+        Estimate  CI_Lower_Bound CI_Upper_Bound
+Break 1 &quot;1984 Q1&quot; &quot;1977 Q3&quot;      &quot;1984 Q2&quot;</code></pre>
+<p>A single break is detected, as in the analysis based on the
+individual upper quantiles. Note that the joint confidence interval,
+[1977 Q3, 1984 Q2], is considerably tighter than the single-quantile
+interval at <span class="math inline">\(\tau = 0.65\)</span>, [1968 Q2,
+1987 Q4]: pooling information across quantiles buys precision in the
+date. The rest of the output contains the coefficient estimates and
+their confidence intervals as in the single-quantile case.</p>
+<p>In summary, the findings shed light on the “Great Moderation” debate
+on U.S. GDP growth. The decline in volatility mainly affected the upper
+tail, with the median and lower quantiles remaining stable. This implies
+that expansions became less rapid, while recessions remained as severe.
+A test on the conditional mean, which averages over the distribution,
+would understate the change and misdescribe its nature.</p>
+</div>
+<div id="a-picture" class="section level3">
+<h3>4.6 A picture</h3>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>tt  <span class="ot">&lt;-</span> <span class="fu">seq_len</span>(<span class="fu">nrow</span>(gdp))</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>brk <span class="ot">&lt;-</span> <span class="dv">146</span>; lo <span class="ot">&lt;-</span> <span class="dv">120</span>; hi <span class="ot">&lt;-</span> <span class="dv">147</span>     <span class="co"># DQ estimate and its 95% interval</span></span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>op <span class="ot">&lt;-</span> <span class="fu">par</span>(<span class="at">mar =</span> <span class="fu">c</span>(<span class="fl">3.5</span>, <span class="dv">4</span>, <span class="fl">2.5</span>, <span class="dv">1</span>))</span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="fu">plot</span>(tt, gdp<span class="sc">$</span>gdp, <span class="at">type =</span> <span class="st">&quot;n&quot;</span>, <span class="at">xaxt =</span> <span class="st">&quot;n&quot;</span>, <span class="at">bty =</span> <span class="st">&quot;n&quot;</span>, <span class="at">ylim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">12</span>, <span class="dv">18</span>),</span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="st">&quot;&quot;</span>, <span class="at">ylab =</span> <span class="st">&quot;Real GDP growth (%, annualized)&quot;</span>)</span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="fu">rect</span>(lo, <span class="sc">-</span><span class="dv">12</span>, hi, <span class="dv">18</span>, <span class="at">col =</span> <span class="st">&quot;#EDE7F6&quot;</span>, <span class="at">border =</span> <span class="cn">NA</span>)</span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">h =</span> <span class="dv">0</span>, <span class="at">col =</span> <span class="st">&quot;#CFCFD4&quot;</span>)</span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a><span class="fu">lines</span>(tt, gdp<span class="sc">$</span>gdp, <span class="at">col =</span> <span class="st">&quot;#5A5A66&quot;</span>, <span class="at">lwd =</span> <span class="fl">1.4</span>)</span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a><span class="fu">segments</span>(brk, <span class="sc">-</span><span class="dv">12</span>, brk, <span class="dv">15</span>, <span class="at">col =</span> <span class="st">&quot;#6C4FB8&quot;</span>, <span class="at">lwd =</span> <span class="dv">2</span>)</span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a><span class="fu">text</span>(brk, <span class="fl">16.5</span>, <span class="st">&quot;  break: 1984 Q1&quot;</span>, <span class="at">adj =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.5</span>), <span class="at">col =</span> <span class="st">&quot;#6C4FB8&quot;</span>, <span class="at">cex =</span> <span class="fl">0.85</span>)</span>
+<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a><span class="fu">text</span>(lo,  <span class="fl">16.5</span>, <span class="st">&quot;95% CI  &quot;</span>,         <span class="at">adj =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="fl">0.5</span>), <span class="at">col =</span> <span class="st">&quot;#8E7BC6&quot;</span>, <span class="at">cex =</span> <span class="fl">0.8</span>)</span>
+<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a>at <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">2</span>, <span class="fu">nrow</span>(gdp), <span class="at">by =</span> <span class="dv">40</span>)</span>
+<span id="cb13-14"><a href="#cb13-14" tabindex="-1"></a><span class="fu">axis</span>(<span class="dv">1</span>, <span class="at">at =</span> at, <span class="at">labels =</span> <span class="fu">sub</span>(<span class="st">&quot; Q[1-4]$&quot;</span>, <span class="st">&quot;&quot;</span>, gdp<span class="sc">$</span>yq[at]), <span class="at">col =</span> <span class="st">&quot;#CFCFD4&quot;</span>)</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="fu">par</span>(op)</span></code></pre></div>
+<p>The shaded band is the 95% confidence interval for the break date and
+the vertical rule the point estimate. The visible narrowing of the
+series after it is the compression that the upper-quantile results
+quantify.</p>
+</div>
+<div id="comparing-the-two-normalizations" class="section level3">
+<h3>4.7 Comparing the two normalizations</h3>
+<p>Re-running the analysis with <code>norm.method = &quot;spectral&quot;</code>
+changes the statistics somewhat but not the conclusions:</p>
+<table>
+<colgroup>
+<col width="25%" />
+<col width="25%" />
+<col width="25%" />
+<col width="25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right"><span class="math inline">\(\tau\)</span></th>
+<th align="right"><span class="math inline">\(SQ_\tau\)</span>,
+<code>&quot;cholesky&quot;</code></th>
+<th align="right"><span class="math inline">\(SQ_\tau\)</span>,
+<code>&quot;spectral&quot;</code></th>
+<th align="right">5% critical value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">0.20</td>
+<td align="right">1.423</td>
+<td align="right">1.158</td>
+<td align="right">1.530</td>
+</tr>
+<tr class="even">
+<td align="right">0.35</td>
+<td align="right">1.479</td>
+<td align="right">1.461</td>
+<td align="right">1.530</td>
+</tr>
+<tr class="odd">
+<td align="right">0.50</td>
+<td align="right">1.001</td>
+<td align="right">0.962</td>
+<td align="right">1.530</td>
+</tr>
+<tr class="even">
+<td align="right">0.65</td>
+<td align="right">1.818</td>
+<td align="right">1.845</td>
+<td align="right">1.530</td>
+</tr>
+<tr class="odd">
+<td align="right">0.80</td>
+<td align="right">2.171</td>
+<td align="right">2.332</td>
+<td align="right">1.530</td>
+</tr>
+<tr class="even">
+<td align="right"><span class="math inline">\(DQ\)</span></td>
+<td align="right">1.028</td>
+<td align="right">1.043</td>
+<td align="right">0.910</td>
+</tr>
+</tbody>
+</table>
+<p>Every rejection decision is unchanged, and the estimated break date
+remains 1984 Q1 with the identical confidence interval [1977 Q3, 1984
+Q2] — as it must, since break dates do not depend on the
+normalization.</p>
+</div>
+<div id="computational-time" class="section level3">
+<h3>4.8 Computational time</h3>
+<p>The dynamic programming algorithm determines the globally optimal
+break partitions at a cost growing with the square of the sample size,
+regardless of the number of breaks allowed. In this example the program
+finishes within a few minutes on a typical desktop computer with a
+single processor. Because the quantile trimming here is symmetric (<span class="math inline">\(\omega_1 = 0.2\)</span>, <span class="math inline">\(\omega_2 = 0.8\)</span>) and there are only three
+coefficients, the <span class="math inline">\(DQ\)</span> critical
+values come from the response surface and no simulation is required.</p>
+</div>
+<div id="potential-error-messages" class="section level3">
+<h3>4.9 Potential error messages</h3>
+<p>The function displays error messages if the inputs are not configured
+properly. Suppose we set <code>trim.e = 0.2</code> and
+<code>m.max = 6</code>. The product exceeds 1, because it is not
+possible to allow six breaks when each regime is at least 20% of the
+sample:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="fu">rq.break</span>(y, x, vec.tau, <span class="at">N =</span> <span class="dv">1</span>, <span class="at">trim.e =</span> <span class="fl">0.2</span>, <span class="at">vec.time =</span> gdp[, <span class="st">&quot;yq&quot;</span>],</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>         <span class="at">m.max =</span> <span class="dv">6</span>, <span class="at">v.a =</span> <span class="dv">2</span>, <span class="at">v.b =</span> <span class="dv">2</span>)</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a><span class="co">#&gt; Error in rq.break(y, x, vec.tau, N = 1, trim.e = 0.2, vec.time = gdp[, : Error: m.max*trim.e exceeds 1. This occurs because too many regimes are allowed or the minimum length of a regime is too large. Consider decreasing m.max, trim.e, or both.</span></span></code></pre></div>
+<p>As another example, if <code>trim.e</code> is too small the message
+suggests increasing it:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">rq.break</span>(y, x, vec.tau, <span class="at">N =</span> <span class="dv">1</span>, <span class="at">trim.e =</span> <span class="fl">0.01</span>, <span class="at">vec.time =</span> gdp[, <span class="st">&quot;yq&quot;</span>],</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>         <span class="at">m.max =</span> <span class="dv">3</span>, <span class="at">v.a =</span> <span class="dv">2</span>, <span class="at">v.b =</span> <span class="dv">2</span>)</span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a><span class="co">#&gt; Error in rq.break(y, x, vec.tau, N = 1, trim.e = 0.01, vec.time = gdp[, : Error: trim.e * nrow(x) must be at least the number of regressors; otherwise, the estimation results are not unique. Consider increasing trim.e.</span></span></code></pre></div>
+<p>When an error message is produced the program exits with no saved
+results, and the user can modify the inputs and restart.</p>
+</div>
+</div>
+<div id="application-2-repeated-cross-sections-youth-drinking-and-driving" class="section level2">
+<h2>5. Application 2: repeated cross-sections — youth drinking and
+driving</h2>
+<div id="the-data-1" class="section level3">
+<h3>5.1 The data</h3>
+<p>The main steps and the output structure are similar to the time
+series case. The data record the blood alcohol concentration of drivers
+under 21 involved in motor vehicle accidents in California from 1983 Q1
+to 2007 Q4, together with age, a gender dummy, and a dummy for the
+fourth quarter. There are <span class="math inline">\(N = 108\)</span>
+drivers per quarter over <span class="math inline">\(T = 100\)</span>
+quarters, giving <span class="math inline">\(NT = 10{,}800\)</span>
+observations. The data are organized so that the first <span class="math inline">\(N\)</span> rows are for the first time period, the
+next <span class="math inline">\(N\)</span> rows for the next period,
+and so forth.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="fu">data</span>(driver)</span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a><span class="fu">str</span>(driver)</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a><span class="co">#&gt; &#39;data.frame&#39;:    10800 obs. of  5 variables:</span></span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a><span class="co">#&gt;  $ yq    : chr  &quot;1983 Q1&quot; &quot;1983 Q1&quot; &quot;1983 Q1&quot; &quot;1983 Q1&quot; ...</span></span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a><span class="co">#&gt;  $ bac   : num  0.23 0 0 0 0 0 0.04 0.22 0 0 ...</span></span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a><span class="co">#&gt;  $ age   : int  20 17 20 20 18 16 20 19 20 20 ...</span></span>
+<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a><span class="co">#&gt;  $ gender: int  1 1 1 1 1 1 1 1 0 1 ...</span></span>
+<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a><span class="co">#&gt;  $ winter: int  0 0 0 0 0 0 0 0 0 0 ...</span></span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>y        <span class="ot">&lt;-</span> driver[, <span class="st">&quot;bac&quot;</span>]</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>x        <span class="ot">&lt;-</span> driver[, <span class="fu">c</span>(<span class="st">&quot;age&quot;</span>, <span class="st">&quot;gender&quot;</span>, <span class="st">&quot;winter&quot;</span>)]</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>vec.time <span class="ot">&lt;-</span> <span class="fu">unique</span>(driver[, <span class="st">&quot;yq&quot;</span>])    <span class="co"># length T = 100, one label per quarter</span></span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a><span class="fu">length</span>(vec.time)</span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a><span class="co">#&gt; [1] 100</span></span></code></pre></div>
+<p>The choice of quantiles is dictated by the data. BAC is exactly zero
+for most of these drivers:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="fu">mean</span>(driver<span class="sc">$</span>bac <span class="sc">==</span> <span class="dv">0</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a><span class="co">#&gt; [1] 0.6187037</span></span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a><span class="fu">quantile</span>(driver<span class="sc">$</span>bac, <span class="fu">c</span>(<span class="fl">0.50</span>, <span class="fl">0.60</span>, <span class="fl">0.65</span>, <span class="fl">0.70</span>, <span class="fl">0.80</span>, <span class="fl">0.85</span>))</span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a><span class="co">#&gt;  50%  60%  65%  70%  80%  85% </span></span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a><span class="co">#&gt; 0.00 0.00 0.04 0.07 0.13 0.16</span></span></code></pre></div>
+<p>About 62% of the observations sit at zero, so every quantile below
+roughly <span class="math inline">\(\tau = 0.62\)</span> falls inside
+that point mass and carries no information about drinking behaviour.
+Attention is therefore restricted to <span class="math inline">\(\tau
+\in \{0.70, 0.75, 0.80, 0.85\}\)</span> — high enough to clear the mass
+point, low enough to be estimated reliably.</p>
+</div>
+<div id="running-the-function-1" class="section level3">
+<h3>5.2 Running the function</h3>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a>res.d <span class="ot">&lt;-</span> <span class="fu">rq.break</span>(y, x,</span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>                  <span class="at">vec.tau     =</span> <span class="fu">seq</span>(<span class="fl">0.70</span>, <span class="fl">0.85</span>, <span class="at">by =</span> <span class="fl">0.05</span>),</span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a>                  <span class="at">N           =</span> <span class="dv">108</span>,</span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a>                  <span class="at">trim.e      =</span> <span class="fl">0.05</span>,</span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a>                  <span class="at">vec.time    =</span> vec.time,</span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a>                  <span class="at">m.max       =</span> <span class="dv">3</span>,</span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a>                  <span class="at">v.a         =</span> <span class="dv">2</span>,</span>
+<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a>                  <span class="at">v.b         =</span> <span class="dv">2</span>,</span>
+<span id="cb20-9"><a href="#cb20-9" tabindex="-1"></a>                  <span class="at">verbose     =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb20-10"><a href="#cb20-10" tabindex="-1"></a>                  <span class="at">norm.method =</span> <span class="st">&quot;cholesky&quot;</span>)</span></code></pre></div>
+<p>Two features differ from the time series case. First,
+<code>N = 108</code> changes the meaning of the sample: regime lengths,
+trimming and break dates are counted in <em>periods</em>. Second, the
+quantile range is <strong>asymmetric</strong> (<span class="math inline">\(\omega_1 = 0.70\)</span>, <span class="math inline">\(\omega_2 = 0.85\)</span>, so <span class="math inline">\(\omega_2 \neq 1 - \omega_1\)</span>), so the
+response surface does not apply and the function prints</p>
+<pre><code>The critical values of the DQ test is obtained via simulations</code></pre>
+<p>before generating them by simulation, with 50,000 replications, for
+this specific design matrix. This is accurate but noticeably slower, and
+is the dominant cost of this example.</p>
+</div>
+<div id="output-based-on-separate-quantiles-1" class="section level3">
+<h3>5.3 Output based on separate quantiles</h3>
+<p>The first quantile is <span class="math inline">\(\tau =
+0.7\)</span>, for which two breaks are detected along with their
+confidence intervals:</p>
+<pre><code>$s.out$test_0.7
+                1 Breaks 2 Breaks 3 Breaks
+SQ test         5.179373 2.205150 1.339123
+Critical values 1.574681 1.679331 1.737955
+
+$s.out$nbreak_0.7
+[1] 2
+
+$s.out$br_est_0.7
+        Estimate CI_Lower_Bound CI_Upper_Bound
+Break 1       10              6             15
+Break 2       38             35             39
+
+$s.out$br_est_time_0.7
+        Estimate  CI_Lower_Bound CI_Upper_Bound
+Break 1 &quot;1985 Q2&quot; &quot;1984 Q2&quot;      &quot;1986 Q3&quot;
+Break 2 &quot;1992 Q2&quot; &quot;1991 Q3&quot;      &quot;1992 Q3&quot;</code></pre>
+<p>The tests reject far more decisively than in the time series case —
+the statistics are several times their critical values — which is what a
+cross-section of 108 per period buys in power. The output continues with
+the parameter estimates for the three regimes and then moves to the next
+quantile.</p>
+<p>The number of breaks varies across the range:</p>
+<table>
+<colgroup>
+<col width="20%" />
+<col width="20%" />
+<col width="20%" />
+<col width="20%" />
+<col width="20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th><span class="math inline">\(\tau\)</span></th>
+<th>0.70</th>
+<th>0.75</th>
+<th>0.80</th>
+<th>0.85</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(SQ_\tau\)</span> (1 break)</td>
+<td>5.179</td>
+<td>4.613</td>
+<td>3.503</td>
+<td>3.258</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(SQ_\tau(2 \mid 1)\)</span></td>
+<td>2.205</td>
+<td>1.931</td>
+<td>1.392</td>
+<td>1.056</td>
+</tr>
+<tr class="odd">
+<td>5% critical values</td>
+<td>1.575 / 1.679</td>
+<td>1.575 / 1.679</td>
+<td>1.575 / 1.679</td>
+<td>1.575 / 1.679</td>
+</tr>
+<tr class="even">
+<td>Breaks detected</td>
+<td>2</td>
+<td>2</td>
+<td>1</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<p>At <span class="math inline">\(\tau = 0.80\)</span> and <span class="math inline">\(0.85\)</span> only the 1992 break is found; the
+mid-1980s break appears only at the two lower quantiles. This is the
+pattern behind the substantive conclusion below.</p>
+</div>
+<div id="output-based-on-multiple-quantiles-1" class="section level3">
+<h3>5.4 Output based on multiple quantiles</h3>
+<pre><code>$m.out$test_joint
+                 1 Breaks  2 Breaks  3 Breaks
+DQ test         2.3734870 1.0105268 0.5995825
+Critical values 0.7717347 0.8162768 0.8428049
+
+$m.out$nbreak_joint
+[1] 2
+
+$m.out$br_est_joint
+        Estimate CI_Lower_Bound CI_Upper_Bound
+Break 1        9              5             13
+Break 2       38             34             39
+
+$m.out$br_est_joint_time
+        Estimate  CI_Lower_Bound CI_Upper_Bound
+Break 1 &quot;1985 Q1&quot; &quot;1984 Q1&quot;      &quot;1986 Q1&quot;
+Break 2 &quot;1992 Q2&quot; &quot;1991 Q2&quot;      &quot;1992 Q3&quot;</code></pre>
+<p>The joint analysis recovers both breaks. The rest of the output
+contains the coefficient estimates for each quantile followed by the
+break size estimates at each quantile. At <span class="math inline">\(\tau = 0.7\)</span>:</p>
+<pre><code>$m.out$bsize_0.7_Regime_2_minus_Regime_1
+                  Value  Std. Error       t value   Pr(&gt;|t|)
+Intercept -2.200000e-01 0.086392487 -2.546518e+00 0.01089414
+x1         1.000000e-02 0.004616669  2.166064e+00 0.03032812
+x2         1.000000e-02 0.015634579  6.396079e-01 0.52244114
+x3        -2.674365e-17 0.013993342 -1.911170e-15 1.00000000
+
+$m.out$bsize_0.7_Regime_3_minus_Regime_2
+                 Value  Std. Error    t value   Pr(&gt;|t|)
+Intercept  0.103333333 0.054260043  1.9044093 0.05688347
+x1        -0.008333333 0.003023686 -2.7560181 0.00586080
+x2         0.003333333 0.010360097  0.3217473 0.74765036
+x3         0.020000000 0.010266885  1.9480105 0.05143960</code></pre>
+<p>Note that in <code>$m.out</code> the coefficients and break sizes are
+reported for <strong>every</strong> quantile in <code>vec.tau</code> at
+the <span class="math inline">\(DQ\)</span> break dates, including <span class="math inline">\(\tau = 0.80\)</span> and <span class="math inline">\(0.85\)</span> where the single-quantile analysis
+found only one break. This is by construction: the joint procedure
+decides the number and location of the breaks once, using all quantiles
+together, and then estimates each quantile’s coefficients subject to
+that common partition.</p>
+<p>The two dates are consistent with the 1984 National Minimum Drinking
+Age Act and a 1991 beer tax increase. The changes are negative and
+meaningful in magnitude, but smaller for higher quantiles — the policies
+were more effective for “light drinkers” than for “heavy drinkers”. This
+is encouraging but falls short of expectations, since heavy drinkers are
+more likely to cause accidents, suggesting that additional policies are
+needed to deter heavy drinking.</p>
+</div>
+</div>
+<div id="working-with-the-individual-functions" class="section level2">
+<h2>6. Working with the individual functions</h2>
+<p><code>rq.break()</code> is a wrapper around exported components, each
+of which can be used on its own — to test at a date decided in advance,
+to reuse an expensive computation, or to inspect intermediate
+quantities.</p>
+<div id="a-single-test-at-a-single-quantile" class="section level3">
+<h3>6.1 A single test at a single quantile</h3>
+<p><code>sq.test.0vs1()</code> implements <span class="math inline">\(SQ_\tau\)</span> of Section 2.4.1 with no search
+over the number of breaks:</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a>y <span class="ot">&lt;-</span> gdp[, <span class="st">&quot;gdp&quot;</span>]</span>
+<span id="cb25-2"><a href="#cb25-2" tabindex="-1"></a>x <span class="ot">&lt;-</span> gdp[, <span class="fu">c</span>(<span class="st">&quot;lag1&quot;</span>, <span class="st">&quot;lag2&quot;</span>)]</span>
+<span id="cb25-3"><a href="#cb25-3" tabindex="-1"></a></span>
+<span id="cb25-4"><a href="#cb25-4" tabindex="-1"></a><span class="fu">sq.test.0vs1</span>(y, x, <span class="at">v.tau =</span> <span class="fl">0.8</span>, <span class="at">n.size =</span> <span class="dv">1</span>)</span>
+<span id="cb25-5"><a href="#cb25-5" tabindex="-1"></a><span class="co">#&gt; [1] 2.170968</span></span></code></pre></div>
+<p>At the 5% level with three coefficients the critical value is 1.530,
+so this rejects. <code>dq.test.0vs1()</code> is the corresponding <span class="math inline">\(DQ\)</span> test over a quantile range:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a><span class="fu">dq.test.0vs1</span>(y, x, <span class="at">q.L =</span> <span class="fl">0.2</span>, <span class="at">q.R =</span> <span class="fl">0.8</span>, <span class="at">n.size =</span> <span class="dv">1</span>)</span>
+<span id="cb26-2"><a href="#cb26-2" tabindex="-1"></a><span class="co">#&gt; [1] 1.027587</span></span></code></pre></div>
+<p>For a symmetric range its critical values come from the response
+surface:</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" tabindex="-1"></a><span class="fu">res.surface</span>(<span class="at">p =</span> <span class="dv">3</span>, <span class="at">l =</span> <span class="dv">0</span>, <span class="at">q.L =</span> <span class="fl">0.2</span>, <span class="at">q.R =</span> <span class="fl">0.8</span>, <span class="at">d.Sym =</span> <span class="cn">TRUE</span>)   <span class="co"># 10%, 5%, 1%</span></span>
+<span id="cb27-2"><a href="#cb27-2" tabindex="-1"></a><span class="co">#&gt;           [,1]</span></span>
+<span id="cb27-3"><a href="#cb27-3" tabindex="-1"></a><span class="co">#&gt; [1,] 0.8580936</span></span>
+<span id="cb27-4"><a href="#cb27-4" tabindex="-1"></a><span class="co">#&gt; [2,] 0.9098714</span></span>
+<span id="cb27-5"><a href="#cb27-5" tabindex="-1"></a><span class="co">#&gt; [3,] 1.0223330</span></span></code></pre></div>
+<p>The sequential versions of Section 2.4.2 take the break dates
+estimated under the null and test for one more:</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" tabindex="-1"></a><span class="fu">sq.test.lvsl_1</span>(y, x, <span class="at">v.tau =</span> <span class="fl">0.8</span>, <span class="at">n.size =</span> <span class="dv">1</span>, <span class="at">vec.date =</span> <span class="dv">146</span>)</span>
+<span id="cb28-2"><a href="#cb28-2" tabindex="-1"></a><span class="co">#&gt; [1] 1.064567</span></span>
+<span id="cb28-3"><a href="#cb28-3" tabindex="-1"></a><span class="fu">dq.test.lvsl_1</span>(y, x, <span class="at">q.L =</span> <span class="fl">0.2</span>, <span class="at">q.R =</span> <span class="fl">0.8</span>, <span class="at">n.size =</span> <span class="dv">1</span>, <span class="at">vec.date =</span> <span class="dv">146</span>)</span>
+<span id="cb28-4"><a href="#cb28-4" tabindex="-1"></a><span class="co">#&gt; [1] 0.5892746</span></span></code></pre></div>
+<p>Both fall below their critical values (1.638 and 0.958 at the 5%
+level), confirming a single break.</p>
+</div>
+<div id="estimation-given-break-dates" class="section level3">
+<h3>6.2 Estimation given break dates</h3>
+<p><code>rq.est.regime()</code> fits each regime separately:</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" tabindex="-1"></a><span class="fu">rq.est.regime</span>(y, x, <span class="at">v.tau =</span> <span class="fl">0.8</span>, <span class="at">vec.date =</span> <span class="dv">146</span>, <span class="at">n.size =</span> <span class="dv">1</span>)</span>
+<span id="cb29-2"><a href="#cb29-2" tabindex="-1"></a><span class="co">#&gt; $Regime_1</span></span>
+<span id="cb29-3"><a href="#cb29-3" tabindex="-1"></a><span class="co">#&gt;                Value Std. Error   t value     Pr(&gt;|t|)</span></span>
+<span id="cb29-4"><a href="#cb29-4" tabindex="-1"></a><span class="co">#&gt; Intercept  6.1285339 0.58621285 10.454452 0.000000e+00</span></span>
+<span id="cb29-5"><a href="#cb29-5" tabindex="-1"></a><span class="co">#&gt; x1         0.3744357 0.07818645  4.789010 4.142365e-06</span></span>
+<span id="cb29-6"><a href="#cb29-6" tabindex="-1"></a><span class="co">#&gt; x2        -0.0906033 0.07957956 -1.138525 2.568052e-01</span></span>
+<span id="cb29-7"><a href="#cb29-7" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb29-8"><a href="#cb29-8" tabindex="-1"></a><span class="co">#&gt; $Regime_2</span></span>
+<span id="cb29-9"><a href="#cb29-9" tabindex="-1"></a><span class="co">#&gt;               Value Std. Error  t value     Pr(&gt;|t|)</span></span>
+<span id="cb29-10"><a href="#cb29-10" tabindex="-1"></a><span class="co">#&gt; Intercept 3.0392288  0.4220644 7.200865 1.231277e-10</span></span>
+<span id="cb29-11"><a href="#cb29-11" tabindex="-1"></a><span class="co">#&gt; x1        0.1636059  0.1187198 1.378084 1.713156e-01</span></span>
+<span id="cb29-12"><a href="#cb29-12" tabindex="-1"></a><span class="co">#&gt; x2        0.3141521  0.1122296 2.799192 6.170306e-03</span></span></code></pre></div>
+<p><code>rq.est.full()</code> fits all regimes in a single quantile
+regression, which is what makes the differences between adjacent regimes
+and their standard errors available:</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">rq.est.full</span>(y, x, <span class="at">v.tau =</span> <span class="fl">0.8</span>, <span class="at">vec.date =</span> <span class="dv">146</span>, <span class="at">n.size =</span> <span class="dv">1</span>)</span>
+<span id="cb30-2"><a href="#cb30-2" tabindex="-1"></a><span class="fu">summary</span>(fit, <span class="at">se =</span> <span class="st">&quot;nid&quot;</span>, <span class="at">covariance =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<p><code>ci.date.m()</code> builds the confidence intervals of Section
+2.3 for dates supplied by the user; the three columns are the estimate
+and the lower and upper bounds:</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" tabindex="-1"></a><span class="fu">ci.date.m</span>(y, x, <span class="at">vec.tau =</span> <span class="fl">0.8</span>, <span class="at">vec.date =</span> <span class="dv">146</span>, <span class="at">n.size =</span> <span class="dv">1</span>, <span class="at">v.b =</span> <span class="dv">2</span>)</span>
+<span id="cb31-2"><a href="#cb31-2" tabindex="-1"></a><span class="co">#&gt;      [,1] [,2] [,3]</span></span>
+<span id="cb31-3"><a href="#cb31-3" tabindex="-1"></a><span class="co">#&gt; [1,]  146  125  170</span></span></code></pre></div>
+<p>Passing a vector to <code>vec.tau</code> gives the multi-quantile
+interval instead.</p>
+</div>
+<div id="the-search-itself" class="section level3">
+<h3>6.3 The search itself</h3>
+<p>The expensive step is <code>gen.long()</code>, which evaluates the
+objective function over every admissible segment. <code>brdate()</code>
+then runs the dynamic program of Bai and Perron (2003) over those
+values, and <code>sq()</code> / <code>dq()</code> apply the sequential
+tests. Splitting them apart allows the <code>gen.long()</code> output to
+be reused across several settings of <code>m.max</code>,
+<code>v.a</code> or <code>norm.method</code>:</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" tabindex="-1"></a>T.size    <span class="ot">&lt;-</span> <span class="fu">length</span>(y)</span>
+<span id="cb32-2"><a href="#cb32-2" tabindex="-1"></a>trim.size <span class="ot">&lt;-</span> <span class="fu">round</span>(T.size <span class="sc">*</span> <span class="fl">0.15</span>)</span>
+<span id="cb32-3"><a href="#cb32-3" tabindex="-1"></a></span>
+<span id="cb32-4"><a href="#cb32-4" tabindex="-1"></a>out.long   <span class="ot">&lt;-</span> <span class="fu">gen.long</span>(y, x, vec.tau, <span class="at">n.size =</span> <span class="dv">1</span>, trim.size)   <span class="co"># the expensive step</span></span>
+<span id="cb32-5"><a href="#cb32-5" tabindex="-1"></a>mat.long.s <span class="ot">&lt;-</span> out.long<span class="sc">$</span>mat.long    <span class="co"># one column per quantile</span></span>
+<span id="cb32-6"><a href="#cb32-6" tabindex="-1"></a>vec.long.m <span class="ot">&lt;-</span> out.long<span class="sc">$</span>vec.long    <span class="co"># quantiles combined</span></span>
+<span id="cb32-7"><a href="#cb32-7" tabindex="-1"></a></span>
+<span id="cb32-8"><a href="#cb32-8" tabindex="-1"></a>mat.date <span class="ot">&lt;-</span> <span class="fu">brdate</span>(y, x, <span class="at">n.size =</span> <span class="dv">1</span>, <span class="at">m =</span> <span class="dv">3</span>, trim.size, vec.long.m)</span>
+<span id="cb32-9"><a href="#cb32-9" tabindex="-1"></a></span>
+<span id="cb32-10"><a href="#cb32-10" tabindex="-1"></a><span class="fu">dq</span>(y, x, vec.tau, <span class="at">q.L =</span> <span class="fl">0.2</span>, <span class="at">q.R =</span> <span class="fl">0.8</span>, <span class="at">n.size =</span> <span class="dv">1</span>, <span class="at">m.max =</span> <span class="dv">3</span>,</span>
+<span id="cb32-11"><a href="#cb32-11" tabindex="-1"></a>   trim.size, mat.date, <span class="at">d.Sym =</span> <span class="cn">TRUE</span>, <span class="at">table.cv =</span> <span class="cn">NULL</span>)</span></code></pre></div>
+<p><code>d.Sym = TRUE</code> asserts a symmetric quantile range so that
+the response surface applies, in which case <code>table.cv = NULL</code>
+is correct. For an asymmetric range set <code>d.Sym = FALSE</code> and
+supply simulated critical values.</p>
+</div>
+</div>
+<div id="practical-notes" class="section level2">
+<h2>7. Practical notes</h2>
+<p><strong>Runtime.</strong> The cost is dominated by
+<code>gen.long()</code>, which is <span class="math inline">\(O(T^2)\)</span> per quantile and does not depend
+on <code>m.max</code>. Raising <code>m.max</code> adds only the cheap
+search over precomputed values and a few more sequential tests, so there
+is little to gain by keeping it artificially small. What drives the cost
+is <span class="math inline">\(T\)</span> (quadratically) and the number
+of quantiles (linearly).</p>
+<p><strong>Warnings about non-unique fits.</strong> <code>rq()</code>
+warns when a quantile regression solution is not unique, which happens
+routinely on short segments and on data with many tied values — the
+<code>driver</code> BAC data especially. These warnings are benign here;
+<code>options(warn = -1)</code> suppresses them.</p>
+<p><strong>“confidence interval is out of the range”.</strong> This
+warning means an interval extends past the start or end of the sample.
+The date estimate is still reported, but is not converted to calendar
+form, so <code>br_est_time_*</code> will be missing for that quantile.
+It usually signals a break estimated close to a sample boundary, or one
+estimated imprecisely.</p>
+<p><strong>Reproducibility.</strong> When the <span class="math inline">\(DQ\)</span> critical values come from tables or
+the response surface they are fixed and repeated runs give identical
+output. When they are simulated instead, they carry Monte Carlo noise,
+and the package does not set a seed internally. In the
+<code>driver</code> example the simulated 5% critical values move by
+roughly <span class="math inline">\(\pm 0.003\)</span> across runs — far
+too small to change the number of breaks detected, but enough that the
+printed critical values will not match to the last digit from one
+session to the next. Call <code>set.seed()</code> before
+<code>rq.break()</code> if byte-identical output is required. Everything
+else — break dates, coefficients, and the <span class="math inline">\(SQ\)</span> and <span class="math inline">\(DQ\)</span> statistics themselves — is
+deterministic.</p>
+</div>
+<div id="references" class="section level2">
+<h2>References</h2>
+<p>Bai, J. (1995). Least Absolute Deviation Estimation of a Shift.
+<em>Econometric Theory</em>, 11, 403–436.</p>
+<p>Bai, J. and P. Perron (2003). Computation and Analysis of Multiple
+Structural Change Models. <em>Journal of Applied Econometrics</em>, 18,
+1–22.</p>
+<p>Kessy, A., A. Lewin and K. Strimmer (2018). Optimal Whitening and
+Decorrelation. <em>The American Statistician</em>, 72(4), 309–314.</p>
+<p>Koenker, R. (2005). <em>Quantile Regression</em>. Cambridge
+University Press.</p>
+<p>Oka, T. and Z. Qu (2011). Estimating Structural Changes in Regression
+Quantiles. <em>Journal of Econometrics</em>, 162, 248–267. <a href="https://doi.org/10.1016/j.jeconom.2011.01.005">doi:10.1016/j.jeconom.2011.01.005</a></p>
+<p>Picard, D. (1985). Testing and Estimating Change-Points in Time
+Series. <em>Advances in Applied Probability</em>, 17, 841–867.</p>
+<p>Qu, Z. (2008). Testing for Structural Change in Regression Quantiles.
+<em>Journal of Econometrics</em>, 146, 170–184. <a href="https://doi.org/10.1016/j.jeconom.2008.08.006">doi:10.1016/j.jeconom.2008.08.006</a></p>
+<p>Su, L. and Z. Xiao (2008). Testing for Parameter Stability in
+Quantile Regression Models. <em>Statistics and Probability Letters</em>,
+78, 2768–2775.</p>
+<p>Yao, Y. C. (1987). Approximating the Distribution of the Maximum
+Likelihood Estimate of the Change-Point in a Sequence of Independent
+Random Variables. <em>The Annals of Statistics</em>, 15, 1321–1328.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

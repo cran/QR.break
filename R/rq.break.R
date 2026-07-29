@@ -4,7 +4,7 @@
 #' This is the main function of this package for testing breaks in quantile regression models
 #' and estimating break dates and break sizes with corresponding confidence intervals.
 #'
-#' @usage rq.break(y, x, vec.tau, N, trim.e, vec.time, m.max, v.a, v.b, verbose)
+#' @usage rq.break(y, x, vec.tau, N, trim.e, vec.time, m.max, v.a, v.b, verbose, norm.method)
 #'
 #' @param y a numeric vector, the outcome variable (NT x 1), the first N units are from the first period,
 #' the next N from the second period, and so forth.
@@ -19,6 +19,8 @@
 #' @param v.a the significance level used for determining the number of breaks; 1, 2 or 3 for 10%, 5% or 1%, respectively
 #' @param v.b the coverage level for constructing the confidence intervals of break dates; 1 or 2 for 90% and 95%, respectively.
 #' @param verbose Logical; set to TRUE to print estimates to the console. Default is FALSE.
+#' @param norm.method a character string specifying how the subgradient process underlying the
+#' SQ and DQ tests is normalized; either \code{"cholesky"} (the default) or \code{"spectral"}. See Details.
 #'
 #' @return A list containing:
 #' - `$s.out`: A list with break testing results, estimated break dates, confidence intervals, and coefficient estimates
@@ -34,6 +36,36 @@
 #' - `coef_tau`: Estimated regression coefficients for each regime at quantile `tau`.
 #' - `bsize_tau`: Break size estimates for each transition between regimes at quantile `tau`.
 #'
+#' @details
+#' Let \eqn{W = \sum_{t} \sum_{i} x_{it} x_{it}'}{W = sum_t sum_i x_it x_it'}, where for a
+#' single time series the sums over \eqn{i} are absent. The tests normalize the subgradient
+#' process by an inverse square root of \eqn{W}. See Oka and Qu (2011, p. 254). Such a matrix
+#' is not unique, and \code{norm.method} selects which one is used.
+#'
+#' With \code{"cholesky"}, the normalization is \eqn{(R')^{-1}}, where \eqn{R} is the Cholesky
+#' factor of \eqn{W} returned by \code{chol()}, with \eqn{R'R = W}. This is the normalization
+#' used in versions 1.0.2 and earlier, and is the default setting. This option implicitly
+#' gives more weight to regressors appearing earlier in the regression. It is suitable when
+#' there is a natural ordering, e.g., in a quantile autoregression where the regressors are
+#' lagged values and low lags are ordered first. It is invariant to the units in which the
+#' regressors are measured, and to their signs.
+#'
+#' With \code{"spectral"}, the normalization is \eqn{C^{-1/2} D^{-1}}, where
+#' \eqn{D = \mathrm{diag}(\sqrt{\mathrm{diag}(W)})}{D = diag(sqrt(diag(W)))} and
+#' \eqn{C = D^{-1} W D^{-1}} is the correlation matrix of the regressors, and \eqn{C^{-1/2}}
+#' is its symmetric square root obtained from the spectral decomposition. This normalization
+#' treats the regressors symmetrically. It yields invariance to the order of the regressors,
+#' to their units of measurement, and to their signs. This is the appropriate choice when the
+#' regressors have no natural ordering.
+#'
+#' These invariance properties refer to the normalization. Because the quantile regression is
+#' re-estimated, the computed statistics can differ slightly when the regressors are reordered
+#' or rescaled, by an amount that decreases with the sample size.
+#'
+#' Both choices give the same limiting null distribution. The second option might yield lower
+#' power. In the two examples included in this package, the two options lead to the same
+#' conclusions. Break dates are unaffected by this argument, since they are obtained
+#' by minimizing the check function, which does not depend on the normalization.
 #'
 #' @import quantreg
 #' @importFrom stats runif
@@ -83,15 +115,20 @@
 #'
 #' verbose = FALSE #do not print
 #'
+#' norm.method = "spectral"
+#'
 #' ## main estimation
-#' res = rq.break(y, x, vec.tau, N, trim.e, vec.time, m.max, v.a, v.b, verbose)
+#' res = rq.break(y, x, vec.tau, N, trim.e, vec.time, m.max, v.a, v.b, verbose, norm.method)
 #'
 #' }
 #'
 #' @export
 
-rq.break = function(y, x, vec.tau, N=1, trim.e, vec.time, m.max, v.a, v.b, verbose=FALSE)
+rq.break = function(y, x, vec.tau, N=1, trim.e, vec.time, m.max, v.a, v.b, verbose=FALSE,
+                    norm.method = c("cholesky", "spectral"))
 {
+
+    norm.method <- match.arg(norm.method)
 
     x <- as.matrix(x)
 
@@ -185,7 +222,7 @@ rq.break = function(y, x, vec.tau, N=1, trim.e, vec.time, m.max, v.a, v.b, verbo
         mat.date   = brdate(y, x, n.size, m.max, trim.size, vec.long.s)
 
         ## determine the number of breaks
-        out.s = sq(y, x, v.tau, n.size, m.max, trim.size, mat.date)
+        out.s = sq(y, x, v.tau, n.size, m.max, trim.size, mat.date, norm.method)
 
         ## estimation and inference
         vec.level = c(10, 5, 1)
@@ -347,7 +384,7 @@ rq.break = function(y, x, vec.tau, N=1, trim.e, vec.time, m.max, v.a, v.b, verbo
     }
     mat.date = brdate(y, x, n.size, m.max, trim.size, vec.long.m)
     ## (i) determine the number of breaks
-    out.m = dq(y, x, vec.tau, q.L, q.R, n.size, m.max, trim.size, mat.date,d.Sym,table.cv)
+    out.m = dq(y, x, vec.tau, q.L, q.R, n.size, m.max, trim.size, mat.date,d.Sym,table.cv, norm.method)
     vec.level = c(10, 5, 1) # significance level
 
     ## the number of breaks
@@ -355,7 +392,7 @@ rq.break = function(y, x, vec.tau, N=1, trim.e, vec.time, m.max, v.a, v.b, verbo
     if (verbose){
         cat('----- Break testing results at the', vec.level[v.a], '% significance level: ----\n' )
         cat('(Note: The k-th column and beyond display zero if the (k-1)-th break is insignificant at 10% level)\n')
-      
+
     }
         # Determine the number of columns dynamically
         num_cols <- length(out.m$test)  # Assuming test and cv have the same number of columns

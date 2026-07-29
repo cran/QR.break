@@ -3,12 +3,16 @@
 #' This function tests the null hypothesis of \eqn{L} breaks against the alternative hypothesis of \eqn{L+1} breaks
 #' in a single conditional quantile.
 #'
+#' @usage sq.test.lvsl_1(y, x, v.tau, n.size, vec.date, norm.method)
 #'
 #' @param y A numeric vector of dependent variables (\eqn{NT \times 1}).
 #' @param x A numeric matrix of regressors (\eqn{NT \times p}).
 #' @param v.tau A numeric value representing the quantile of interest.
 #' @param vec.date A numeric vector of break dates estimated under the null hypothesis.
 #' @param n.size An integer specifying the size of the cross-section (\eqn{N}).
+#' @param norm.method A character string specifying how the subgradient process is normalized;
+#' either \code{"cholesky"} (the default, as in versions 1.0.2 and earlier) or \code{"spectral"}.
+#' Passed to \code{sq.test.0vs1()}; see its documentation.
 #'
 #' @return A numeric value representing the test statistic.
 #'
@@ -47,8 +51,10 @@
 #'
 #' @export
 
-sq.test.lvsl_1 = function(y, x, v.tau, n.size = 1, vec.date) #order n.size, vec.date adjusted
+sq.test.lvsl_1 = function(y, x, v.tau, n.size = 1, vec.date, norm.method = c("cholesky", "spectral")) #order n.size, vec.date adjusted
 {
+    norm.method = match.arg(norm.method)
+
     ## the number of breaks
     n.break  = length(vec.date)
 
@@ -68,12 +74,12 @@ sq.test.lvsl_1 = function(y, x, v.tau, n.size = 1, vec.date) #order n.size, vec.
 
         ## test statistics
        # vec.test[j] = SQtest(temp$y1, temp$x1, v.tau, n.size) switched 11/2023
-        vec.test[j] = sq.test.0vs1(temp$y1, temp$x1, v.tau, n.size)
+        vec.test[j] = sq.test.0vs1(temp$y1, temp$x1, v.tau, n.size, norm.method)
     }
 
     ## the last regime
     #vec.test[(n.break+1)] = SQtest(rem.y, rem.x, v.tau, n.size) switched 11/2023
-    vec.test[(n.break+1)] = sq.test.0vs1(rem.y, rem.x, v.tau, n.size)
+    vec.test[(n.break+1)] = sq.test.0vs1(rem.y, rem.x, v.tau, n.size, norm.method)
 
     ## return: maximum over regimes
     return( max(vec.test) )

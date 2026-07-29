@@ -1,0 +1,1042 @@
+---
+title: "QR.break: An R Package for Structural Breaks in Quantile Regression"
+author: "Zhongjun Qu, Tatsushi Oka, and Samuel Messer"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+vignette: >
+  %\VignetteIndexEntry{QR.break: An R Package for Structural Breaks in Quantile Regression}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>",
+  fig.width  = 7,
+  fig.height = 3.6,
+  fig.align  = "center"
+)
+options(warn = -1)   # the quantile regression fit is occasionally non-unique
+```
+
+> This vignette follows Qu, Oka and Messer, *"QR.break: An R Package for
+> Structural Breaks in Quantile Regression"*, which should be consulted for
+> further detail. It outlines the methods implemented in the package and then
+> works through the two datasets: a time series on U.S. real GDP
+> growth and a repeated cross-section on youth drinking and driving. All numerical
+> output shown here was produced with version `r utils::packageVersion("QR.break")`
+> of the package.
+
+## 1. Introduction
+
+The issue of structural breaks has been extensively studied. Much of the
+literature has focused on the conditional mean, but in many cases structural
+change in the conditional quantile function is more informative. For example, in
+studying income inequality, it is important to assess whether the wage gap
+between racial groups, conditional on covariates, has changed over time.
+Inequality may increase conditional dispersion without affecting the mean.
+Similarly, when evaluating a policy aimed at improving outcomes for low-performing
+students, attention should focus on lower quantiles. In both cases it is
+desirable to estimate break dates from the data: in the former, the cause of
+change may be unclear a priori; in the latter, the policy effect may exhibit an
+unknown time lag.
+
+To address these issues, Qu (2008) and Su and Xiao (2008) developed tests for
+detecting structural change in conditional quantile functions with unknown break
+dates, but did not consider estimation and inference for the number of breaks or
+their locations. Oka and Qu (2011) studied the estimation of multiple structural
+breaks at unknown dates in conditional quantile functions for two models: a time
+series model, useful for analyzing macroeconomic data, and a repeated
+cross-section model, relevant for evaluating social programs and policy effects.
+Their framework allows for structural change in single or multiple quantiles.
+Analyzing multiple quantiles requires stronger assumptions but can improve
+estimation efficiency.
+
+Key aspects of Oka and Qu's (2011) procedure are as follows. Assuming a known
+number of breaks, the methods construct estimates of break dates and coefficients
+as global minimizers of the check function over admissible break points. For
+multiple quantiles, the check function is integrated over the set of quantiles
+chosen by the user. The assumptions permit dynamic models and impose restrictions
+only in neighborhoods around the quantiles of interest, leaving other quantiles
+unspecified. This flexibility allows researchers to examine slices of the
+conditional distribution without imposing global distributional assumptions. The
+distributions of the break estimators were derived following Picard (1985) and
+Yao (1987); they involve consistently estimable parameters, which enables
+confidence interval construction without simulation. Oka and Qu (2011) also
+propose a test for the number of breaks based on the subgradient methods of Qu
+(2008). These tests do not require variance estimation and have monotonic power
+even with multiple breaks.
+
+The package's main function, `rq.break()`, returns all testing and estimation
+results based on user-specified quantiles of interest, the maximum number of
+allowed breaks, and the minimum length of a single regime:
+
+```r
+result <- rq.break(y, x, vec.tau, N, trim.e, vec.time, m.max, v.a, v.b,
+                   verbose, norm.method)
+```
+
+We illustrate the function through the two empirical examples of Oka and Qu
+(2011). The first revisits the "Great Moderation" in U.S. GDP growth using
+quarterly data; the results suggest the decline in volatility mainly affected the
+upper tail, with the median and lower quantiles remaining stable, implying that
+expansions became less rapid while recessions remained as severe. The second
+analyzes blood alcohol levels of young drivers in California from 1983 to 2007;
+two breaks are detected, consistent with the 1984 National Minimum Drinking Age
+Act and a 1991 beer tax increase, with effects more pronounced at lower quantiles,
+indicating a greater impact on lighter drinkers than on heavier ones.
+
+```{r load}
+library(QR.break)
+```
+
+## 2. Methods for estimation and inference
+
+This section explains (1) the model and the econometric issues of interest;
+(2) estimating break locations and regression coefficients when the number of
+breaks is known, based on a single quantile; (3) the same based on multiple
+quantiles; (4) a procedure for determining the number of breaks; and (5) inference
+on quantile regression coefficients after estimating the breaks. Section 2.6
+covers the normalization option introduced in package version 1.0.3.
+
+### 2.1 Econometric models and issues of interest
+
+#### 2.1.1 The model
+
+Let $y_{it}$ be the outcome for unit $i$ in period $t$, $x_{it}$ a
+$p$-dimensional vector of covariates, and $Q_{y_{it}}(\tau \mid x_{it})$ the
+conditional $\tau$-quantile of $y_{it}$ given $x_{it}$. Let $N$ be the number of
+cross-sectional units, assumed constant over time, and $T$ the number of periods.
+For a single time series $N = 1$ and the index $i$ is dropped throughout. Assume
+the conditional quantile function is linear and potentially affected by $m$
+structural breaks:
+
+$$
+Q_{y_{it}}(\tau \mid x_{it})=
+\begin{cases}
+x_{it}^{\prime }\beta _{1}^{0}(\tau ), & t=1,\dots ,T_{1}^{0}, \\
+x_{it}^{\prime }\beta _{2}^{0}(\tau ), & t=T_{1}^{0}+1,\dots ,T_{2}^{0}, \\
+\qquad \vdots & \qquad \vdots \\
+x_{it}^{\prime }\beta _{m+1}^{0}(\tau ), & t=T_{m}^{0}+1,\dots ,T,
+\end{cases}
+$$
+
+where $\tau \in (0,1)$, the $\beta_j^0(\tau)$ $(j = 1,\dots,m+1)$ are unknown
+parameters, and the $T_j^0$ $(j = 1,\dots,m)$ are unknown break dates. The
+regressors may include discrete as well as continuous variables. **A column of
+ones is automatically added to the regression when applying the methods.**
+
+#### 2.1.2 Examples
+
+The following examples, taken from Oka and Qu (2011), illustrate the model.
+
+**Example 1 (time series).** Oka and Qu (2011) studied a quantile autoregression
+for U.S. quarterly real GDP growth rates over 1947:Q2 to 2009:Q2, in which the
+regressors are lagged values of the growth rate and the intercept and
+autoregressive coefficients are allowed to shift across regimes. They detect a
+structural break in 1984 that affects only the upper quantiles of the
+distribution. The coefficient estimates suggest that growth was slower during
+expansions, while recessions remained just as severe when they occurred. This
+dataset is included in the package and is used in Section 4.
+
+**Example 2 (repeated cross-sections).** Motor vehicle crashes are the leading
+cause of death among youth aged 15–20, a high proportion of which involve drunk
+driving. Blood alcohol concentration (BAC) is a key measure of alcohol impairment,
+and changes in BAC among young drivers provide useful information on how their
+drinking behavior has changed over time. Oka and Qu (2011) studied structural
+change in BAC among young drivers involved in traffic accidents, using age,
+gender, and a dummy for the fourth quarter as regressors. They detect breaks in
+1985 and 1992. The changes are negative and meaningful in magnitude; however, the
+change is smaller for higher quantiles, suggesting the policies are more effective
+for "light drinkers" than for "heavy drinkers" in the sample. This is encouraging
+but falls short of expectations, as heavy drinkers are more likely to cause
+accidents, suggesting that additional policies are needed to deter heavy drinking.
+This dataset is included in the package and is used in Section 5.
+
+#### 2.1.3 Econometric issues of interest
+
+The methods address the following issues.
+
+1. **Estimation based on a single quantile when the number of breaks is known.**
+   The method estimates both the break locations and the regression coefficients.
+   If the user specifies more than one quantile level, the analysis is performed
+   independently for each quantile, allowing break locations to differ across
+   quantiles. The program returns the estimated break locations, their confidence
+   intervals, and the corresponding estimates and intervals for the regression
+   coefficients.
+
+2. **Estimation based on multiple quantiles when the number of breaks is known.**
+   Here the break locations are assumed common across quantiles and are estimated
+   using information from all specified quantiles. The program returns the same
+   set of objects.
+
+3. **Selection of the number of breaks.** The user specifies the maximum number of
+   breaks, and the program determines the number of breaks using a dynamic
+   programming algorithm.
+
+A single main function performs all of these tasks.
+
+### 2.2 Estimating break locations based on a single quantile
+
+Suppose the $\tau$th quantile is affected by $m$ structural changes. For a set of
+candidate break dates $T^b = (T_1,\dots,T_m)$, the break dates and the
+coefficients are estimated jointly by minimizing the check function over
+admissible partitions:
+
+$$
+(\hat{\beta}(\tau ),\hat{T}^{b})=\arg \min_{\beta (\tau ),\,T^{b}\in \Lambda
+_{\varepsilon }}\ \sum_{j=0}^{m}\ \sum_{t=T_{j}+1}^{T_{j+1}}\ \sum_{i=1}^{N}\rho
+_{\tau }(y_{it}-x_{it}^{\prime }\beta _{j+1}(\tau )),
+$$
+
+where $\rho_\tau(u) = u(\tau - 1(u < 0))$ is the check function (Koenker, 2005),
+$\beta(\tau) = (\beta_1(\tau)',\dots,\beta_{m+1}(\tau)')'$, $T_0 = 0$,
+$T_{m+1} = T$, and the summation over $i$ is absent for a single time series.
+The set $\Lambda_\varepsilon$ collects the admissible partitions, ensuring each
+estimated regime is a positive fraction of the sample: every regime must be at
+least $\varepsilon T$ periods long, and no break may fall within $\varepsilon T$
+of either end of the sample. The user specifies $\varepsilon$ through the argument
+`trim.e`.
+
+The computation is carried out using a dynamic programming algorithm as in Bai and
+Perron (2003), so that **the computation is of order $O(T^2)$ irrespective of the
+number of breaks allowed in the model**.
+
+### 2.3 Estimating break locations based on multiple quantiles
+
+Suppose the quantiles in $\mathcal{T}_\omega = [\omega_1, \omega_2]$ with
+$0 < \omega_1 < \omega_2 < 1$ are affected by structural changes. A natural
+approach is to consider a partition of this interval, examine a set of quantiles
+$\tau_h$, $h = 1,\dots,q$, and minimize the check function summed over them as
+well:
+
+$$
+(\hat{\beta}(\mathcal{T}_{\omega }),\hat{T}^{b})=\arg \min_{\beta (\mathcal{T}%
+_{\omega }),\,T^{b}\in \Lambda _{\varepsilon }}\ \sum_{h=1}^{q}\ \sum_{j=0}^{m}\
+\sum_{t=T_{j}+1}^{T_{j+1}}\ \sum_{i=1}^{N}\rho _{\tau _{h}}(y_{it}-x_{it}^{\prime
+}\beta _{j+1}(\tau _{h})),
+$$
+
+with $\Lambda_\varepsilon$ as before. The estimated break dates are now common
+across quantiles, while the coefficients remain quantile-specific. Regarding the
+partition, **a coarse partition, such as quantiles spaced by 0.1, is sufficient to
+deliver informative results.** The computation is once more $O(T^2)$ irrespective
+of the number of breaks allowed.
+
+For all cases above, confidence intervals for the break dates are computed from
+the limiting distribution of the break point estimates derived in Oka and Qu
+(2011). **That distribution has an analytical density function, so no simulation
+is needed to obtain the critical values**, which keeps the computational cost
+down; see Bai (1995) and Oka and Qu (2011) for details.
+
+### 2.4 Determining the number of breaks
+
+The package uses the two test statistics $SQ_\tau$ (single quantile) and $DQ$
+(multiple quantiles) proposed in Qu (2008).
+
+#### 2.4.1 Testing for a single structural break
+
+The $SQ_\tau$ test detects the presence of a structural break in a given quantile
+$\tau$:
+
+$$
+SQ_{\tau }=\sup_{\lambda \in \lbrack 0,1]}\left\Vert (\tau (1-\tau
+))^{-1/2}\left[ H_{\lambda ,T}(\hat{\beta}(\tau ))-\lambda H_{1,T}(\hat{\beta}%
+(\tau ))\right] \right\Vert _{\infty },
+$$
+
+where
+
+$$
+H_{\lambda ,T}(\hat{\beta}(\tau ))=\left(
+\sum_{t=1}^{T}\sum_{i=1}^{N}x_{it}x_{it}^{\prime }\right) ^{-1/2}\sum_{t=1}^{%
+[\lambda T]}\sum_{i=1}^{N}x_{it}\psi _{\tau }(y_{it}-x_{it}^{\prime }\hat{\beta}%
+(\tau )),
+$$
+
+with $\psi_\tau(u) = \tau - 1(u < 0)$ and, as before, the summation over $i$
+absent for a single time series. Here $\hat\beta(\tau)$ is the full-sample
+estimate assuming no structural change, and $\|\cdot\|_\infty$ is the sup norm,
+revealing the strongest evidence against the null.
+
+The $DQ$ test detects structural changes in quantiles in an interval
+$\mathcal{T}_\omega$, taking a further supremum over $\tau$:
+
+$$
+DQ=\sup_{\tau \in \mathcal{T}_{\omega }}\sup_{\lambda \in \lbrack
+0,1]}\left\Vert H_{\lambda ,T}(\hat{\beta}(\tau ))-\lambda H_{1,T}(\hat{\beta}%
+(\tau ))\right\Vert _{\infty }.
+$$
+
+These correspond to the exported functions `sq.test.0vs1()` and `dq.test.0vs1()`.
+
+#### 2.4.2 Testing $l$ against $l+1$ breaks
+
+Suppose a model with $l$ breaks has been estimated, with break estimates
+$\hat{T}_1,\dots,\hat{T}_l$. These partition the sample into $l+1$ segments, the
+$j$th being $[\hat{T}_{j-1}+1, \hat{T}_j]$. The strategy tests each of the $l+1$
+segments for the presence of an additional break. Letting $SQ_{\tau,j}$ and
+$DQ_j$ denote the tests applied to the $j$th segment,
+
+$$
+SQ_{\tau }(l+1\mid l)=\max_{1\leq j\leq l+1}SQ_{\tau ,j},\qquad DQ(l+1\mid
+l)=\max_{1\leq j\leq l+1}DQ_{j},
+$$
+
+where the segment statistics replace the full-sample sums by sums running from
+$T_{j-1}+1$ to $T_j$, and $\hat\beta_j(\tau)$ is estimated using the $j$th regime
+only. We reject the null in favor of a model with $l+1$ breaks if the resulting
+value exceeds the corresponding critical value. These correspond to
+`sq.test.lvsl_1()` and `dq.test.lvsl_1()`.
+
+#### 2.4.3 Critical values
+
+These tests are asymptotically nuisance parameter free, and tables of critical
+values are provided in Qu (2008). They do not require the estimation of any
+variance parameter, hence have monotonic power even when multiple breaks are
+present.
+
+The package has built-in critical values for common configurations: for the $SQ$
+test when the number of coefficients is below 100, and for the $DQ$ test when the
+number of coefficients is below 20 and the quantile trimming is symmetric
+($\omega_2 = 1 - \omega_1$), via a response surface (`res.surface()`). Outside
+those cases — asymmetric trimming, more than 20 coefficients, or `m.max` above 5 —
+the $DQ$ critical values are computed by simulation, which can add a few minutes
+or more to the running time.
+
+#### 2.4.4 The recommended procedure
+
+Consider the interval $\mathcal{T}_\omega$ and the quantile grid
+$\tau_1,\dots,\tau_q \in \mathcal{T}_\omega$.
+
+* **Step 1.** Apply the $DQ$ test. If it does not reject, conclude there is no
+  break and terminate. If it rejects, estimate the model allowing one break, save
+  the estimated break date, and proceed.
+* **Step 2.** Apply the $DQ(l+1 \mid l)$ tests starting with $l = 1$. Increase $l$
+  if the test rejects. At each stage the model is re-estimated and the break dates
+  are global minimizers of the objective function allowing $l$ breaks. Continue
+  until the test fails to reject.
+* **Step 3.** Let $\hat{l}$ denote the first value for which the test fails to
+  reject. Estimate the model allowing $\hat{l}$ breaks. Save the estimated break
+  dates and confidence intervals.
+* **Step 4.** Treat the $q$ quantiles separately: for every $\tau_h$, apply the
+  $SQ_\tau$ and $SQ_\tau(l+1 \mid l)$ tests, carrying out Steps 1–3. Examine
+  whether the estimated breaks agree with those from Step 3.
+
+`rq.break()` prints the single-quantile analysis first and the joint analysis
+second, which is the order of computation rather than the order of reading. When
+interpreting output, consider follow the steps above.
+
+
+### 2.5 Inference on quantile regression coefficients after estimating the breaks
+
+After determining the break dates, the coefficients are estimated conditional on
+those dates. This is equivalent to partitioning the sample using the break dates
+and running standard quantile regression on each subsample. These results are
+reported automatically by the main function.
+
+Oka and Qu (2011) showed that if the break size is of higher order than
+$T^{-1/2}$, so that breaks are not confounded with estimation uncertainty of
+order $T^{-1/2}$, then the break dates are estimated fast enough that the
+asymptotic distribution of the estimated coefficients is the same as if the break
+dates were known — a familiar result in the structural break literature. This
+permits computing confidence intervals treating the estimated break dates as
+known. The asymptotic variance involves the within-regime second moment matrix of
+the regressors and the same matrix weighted by the conditional density of the
+dependent variable at the quantile of interest; the density is estimated by a
+difference quotient, as described in Qu (2008, pp. 176–177). Instead of using the
+package, users can obtain the same confidence intervals directly from the
+**quantreg** package with the standard error option set to `"nid"`.
+
+### 2.6 Normalization of the subgradient process (version 1.0.3)
+
+The $SQ$ and $DQ$ statistics normalize the subgradient process by an inverse
+square root of $W = \sum_t \sum_i x_{it} x_{it}'$ (the sums over $i$ being absent
+for a single time series). Such a matrix is not unique, and the argument
+`norm.method` selects which one is used.
+
+**`"cholesky"`** (the default) uses $(R')^{-1}$, where $R$ is the Cholesky factor
+returned by `chol()`, with $R'R = W$. This reproduces the results of versions
+1.0.2 and earlier exactly. Because the factor is constructed sequentially, it
+implicitly gives more weight to regressors appearing earlier in the regression. It
+is suitable when there is a natural ordering — for instance a quantile
+autoregression in which low lags are listed first, as in the GDP application. It
+is invariant to the units in which the regressors are measured and to their signs.
+
+**`"spectral"`** uses $C^{-1/2}D^{-1}$, where
+$D = \mathrm{diag}(\sqrt{\mathrm{diag}(W)})$ and $C = D^{-1}WD^{-1}$ is the
+correlation matrix of the regressors, with $C^{-1/2}$ its symmetric square root
+from the spectral decomposition (Kessy, Lewin and Strimmer, 2018). This treats the
+regressors symmetrically, yielding invariance to their order as well as to their
+units and signs. It is the appropriate choice when the regressors have no natural
+ordering, as with the age, gender and winter regressors of the second application.
+
+Both choices give the same limiting null distribution, so the same critical values
+apply and both tests are valid. The second option might yield lower power.
+**Estimated break dates are unaffected by this argument**, since they are obtained
+by minimizing the check function, which does not depend on the normalization. A
+numerical comparison is given in Section 4.7.
+
+These invariance properties refer to the normalization itself. Because the
+quantile regression is re-estimated, the computed statistics can still differ
+slightly when the regressors are reordered or rescaled, by an amount that
+decreases with the sample size.
+
+## 3. Using the main function
+
+### 3.1 Arguments
+
+| Argument | Meaning |
+|---|---|
+| `y` | The dependent variable, a vector of length $NT$ |
+| `x` | The regressors, an $NT \times p$ matrix or data frame. A column of ones should **not** be included; it is added automatically |
+| `vec.tau` | The quantiles of interest, e.g. `seq(0.1, 0.9, by = 0.1)`. A coarse grid is generally sufficient |
+| `N` | The size of the cross-section; set to 1 for time series data |
+| `trim.e` | The minimum length of any regime as a fraction of the total time span. **Values between 0.10 and 0.20 are recommended** |
+| `vec.time` | The time indices, of length $T$, used for reporting the estimated break dates; or `NULL` to report indices |
+| `m.max` | The maximum number of breaks allowed (at most 10) |
+| `v.a` | Significance level for determining the number of breaks: 1, 2 or 3 for 10%, 5% or 1% |
+| `v.b` | Coverage level for the confidence intervals of break dates: 1 or 2 for 90% and 95% |
+| `verbose` | `TRUE` displays results in the console; the default is `FALSE` |
+| `norm.method` | `"cholesky"` (default) or `"spectral"`; see Section 2.6 |
+
+Whether or not `verbose` is set, all estimation and testing results are saved in
+the returned object.
+
+### 3.2 How the data must be arranged
+
+`y` is a single vector of length $NT$, **stacked by period**: the first $N$
+elements are the units observed in the first period, the next $N$ the second
+period, and so forth. `x` is stacked identically. For a time series $N = 1$ and
+`y` is simply the series in time order.
+
+`vec.time` is different: it has length $T$, not $NT$, being one label per
+*period*. For repeated cross-sections use `unique()` to reduce the period column
+accordingly.
+
+**A break date is the final date of the existing regime, not the starting date of
+a new regime.** An estimate of 1984 Q1 means the first regime ends in 1984 Q1 and
+the second begins in 1984 Q2.
+
+### 3.3 The return object
+
+The result is a list with two components: `$s.out`, based on individual quantiles,
+and `$m.out`, based on all quantiles jointly. Entries in `$s.out` are ordered
+according to `vec.tau`, and for each quantile the break testing results come
+first; if at least one significant break is detected, the break locations and
+parameter estimates follow. Element names carry the quantile they refer to:
+
+| Element | Contents |
+|---|---|
+| `test_<tau>`, `test_joint` | Test statistics and critical values |
+| `nbreak_<tau>`, `nbreak_joint` | Number of breaks detected |
+| `br_est_<tau>`, `br_est_joint` | Break dates and confidence intervals, as indices |
+| `br_est_time_<tau>`, `br_est_joint_time` | The same in calendar format |
+| `coef_<tau>` | Regime-by-regime coefficient estimates |
+| `bsize_<tau>_Regime_j+1_minus_Regime_j` | Break sizes between adjacent regimes |
+
+## 4. Application 1: a time series — U.S. real GDP growth
+
+### 4.1 The data
+
+After loading the package, the U.S. GDP data are loaded with `data(gdp)`. The
+`yq` column contains the dates, `gdp` the dependent variable, and the remaining
+two columns the first and second lagged values of `gdp`, used as regressors. The
+estimation sample runs from 1947 Q4 to 2009 Q2 — the raw series begins in
+1947 Q2, with the first two observations consumed by the lags.
+
+```{r gdp-data}
+data(gdp)
+str(gdp)
+head(gdp, 3)
+```
+
+### 4.2 Setting the inputs
+
+The following commands define `y` and `x`:
+
+```{r gdp-setup}
+y <- gdp[, "gdp"]
+x <- gdp[, c("lag1", "lag2")]
+```
+
+A column of ones is always added to the regressors, so the model has **three**
+parameters allowed to be affected by structural breaks: the intercept, the
+coefficient on the first lag, and that on the second lag.
+
+The next command specifies the quantiles of interest:
+
+```{r gdp-tau}
+vec.tau <- seq(0.20, 0.80, by = 0.15)
+vec.tau
+```
+
+Given these inputs the function performs two sets of calculations. First it
+analyzes the quantiles in `vec.tau` independently, so the number of breaks and
+their locations may differ across quantiles. Then it analyzes all quantiles
+simultaneously, assuming breaks are common across quantiles and pooling
+information to estimate the break dates.
+
+Since this is a time series regression, `N = 1`. The minimum regime length matters
+because if a regime is too short the model fit may be non-unique and the
+estimation may pick up spurious breaks; `trim.e = 0.15` implies a regime is at
+least 15% of the sample, or `r round(0.15 * 247)` quarters. Related to this is the
+maximum number of breaks, `m.max = 3`, allowing at most three breaks and hence
+four regimes. Finally `v.a = 2` selects the 5% level for determining the number of
+breaks and `v.b = 2` selects 95% confidence intervals for the break dates.
+
+Setting `vec.time = gdp[, "yq"]` makes the program report break dates using those
+labels; setting it to `NULL` reports integers instead.
+
+### 4.3 Running the function
+
+```{r gdp-run, eval = FALSE}
+res <- rq.break(y, x,
+                vec.tau     = vec.tau,
+                N           = 1,
+                trim.e      = 0.15,
+                vec.time    = gdp[, "yq"],
+                m.max       = 3,
+                v.a         = 2,
+                v.b         = 2,
+                verbose     = TRUE,
+                norm.method = "cholesky")
+```
+
+### 4.4 Output based on separate quantiles
+
+For $\tau = 0.2$ the results are:
+
+```
+$s.out$test_0.2                     # testing results at the chosen level
+                1 Breaks 2 Breaks 3 Breaks
+SQ test         1.423269 1.373012        0
+Critical values 1.529859 1.637547        0
+
+$s.out$nbreak_0.2                   # number of breaks detected
+[1] 0
+```
+
+For this quantile the test of no break against a single break equals 1.423269,
+while the critical value is 1.529859. The value is insignificant at the chosen
+level, so no break is detected. The final column is zero because the test is not
+computed when the previous tests are insignificant at the 10% level. No break
+estimation results are produced.
+
+The results for the other quantiles also show insignificance until $\tau = 0.65$.
+At that point one significant break is detected, followed by its confidence
+interval reported first as index values and then as dates:
+
+```
+$s.out$test_0.65
+                1 Breaks 2 Breaks 3 Breaks
+SQ test         1.817933 1.023126        0
+Critical values 1.529859 1.637547        0
+
+$s.out$nbreak_0.65
+[1] 1
+
+$s.out$br_est_0.65
+        Estimate CI_Lower_Bound CI_Upper_Bound
+Break 1      147             83            161
+
+$s.out$br_est_time_0.65
+        Estimate  CI_Lower_Bound CI_Upper_Bound
+Break 1 "1984 Q2" "1968 Q2"      "1987 Q4"
+```
+
+One break is detected with a point estimate of $t = 147$, corresponding to the
+second quarter of 1984, with a confidence interval of $[83, 161]$, or equivalently
+[1968 Q2, 1987 Q4]. The output also includes the estimated coefficients for the
+two regimes:
+
+```
+$s.out$coef_0.65$Regime_1
+               Value Std. Error   t value     Pr(>|t|)
+Intercept  4.5169837 0.63003316  7.169438 3.625833e-11
+x1         0.4199469 0.09643037  4.354924 2.512308e-05
+x2        -0.1051057 0.09458095 -1.111277 2.683010e-01
+
+$s.out$coef_0.65$Regime_2
+              Value Std. Error  t value     Pr(>|t|)
+Intercept 2.2855100  0.4866286 4.696620 8.711282e-06
+x1        0.1724133  0.1218581 1.414869 1.603091e-01
+x2        0.2386392  0.1320517 1.807164 7.383669e-02
+```
+
+The sum of the autoregressive coefficients changes little, but the intercept
+decreases significantly, indicating a notably lower 0.65 quantile after the break:
+
+```
+$s.out$bsize_0.65_Regime_2_minus_Regime_1
+               Value Std. Error   t value    Pr(>|t|)
+Intercept -2.2314737  0.7957371 -2.804285 0.005453863
+x1        -0.2475336  0.1375265 -1.799898 0.073127343
+x2         0.3437448  0.1418386  2.423492 0.016109478
+```
+
+The method similarly detects a break in the 0.80 quantile, where the pattern is
+sharper still:
+
+```
+$s.out$test_0.8
+                1 Breaks 2 Breaks 3 Breaks
+SQ test         2.170968 1.064567        0
+Critical values 1.529859 1.637547        0
+
+$s.out$br_est_time_0.8
+        Estimate  CI_Lower_Bound CI_Upper_Bound
+Break 1 "1984 Q1" "1978 Q4"      "1990 Q1"
+
+$s.out$bsize_0.8_Regime_2_minus_Regime_1
+               Value Std. Error   t value     Pr(>|t|)
+Intercept -3.0893051  0.7719650 -4.001872 8.367631e-05
+x1        -0.2108298  0.1159821 -1.817778 7.033963e-02
+x2         0.4047554  0.1420980  2.848425 4.773147e-03
+```
+
+Collecting the number of breaks across quantiles:
+
+| $\tau$ | 0.20 | 0.35 | 0.50 | 0.65 | 0.80 |
+|---|---|---|---|---|---|
+| $SQ_\tau$ (1 break) | 1.423 | 1.479 | 1.001 | 1.818 | 2.171 |
+| 5% critical value | 1.530 | 1.530 | 1.530 | 1.530 | 1.530 |
+| Breaks detected | 0 | 0 | 0 | 1 | 1 |
+
+At the median the statistic is 1.001 against a critical value of 1.530 — no
+evidence of a break at all — while the upper quantiles reject clearly.
+
+### 4.5 Output based on multiple quantiles
+
+The results are structured similarly, now based on all chosen quantiles:
+
+```
+$m.out$test_joint
+                 1 Breaks  2 Breaks 3 Breaks
+DQ test         1.0275870 0.5892746        0
+Critical values 0.9098714 0.9584567        0
+
+$m.out$nbreak_joint
+[1] 1
+
+$m.out$br_est_joint
+        Estimate CI_Lower_Bound CI_Upper_Bound
+Break 1      146            120            147
+
+$m.out$br_est_joint_time
+        Estimate  CI_Lower_Bound CI_Upper_Bound
+Break 1 "1984 Q1" "1977 Q3"      "1984 Q2"
+```
+
+A single break is detected, as in the analysis based on the individual upper
+quantiles. Note that the joint confidence interval, [1977 Q3, 1984 Q2], is
+considerably tighter than the single-quantile interval at $\tau = 0.65$,
+[1968 Q2, 1987 Q4]: pooling information across quantiles buys precision in the
+date. The rest of the output contains the coefficient estimates and their
+confidence intervals as in the single-quantile case.
+
+In summary, the findings shed light on the "Great Moderation" debate on U.S. GDP
+growth. The decline in volatility mainly affected the upper tail, with the median
+and lower quantiles remaining stable. This implies that expansions became less
+rapid, while recessions remained as severe. A test on the conditional mean, which
+averages over the distribution, would understate the change and misdescribe its
+nature.
+
+### 4.6 A picture
+
+```{r gdp-plot}
+tt  <- seq_len(nrow(gdp))
+brk <- 146; lo <- 120; hi <- 147     # DQ estimate and its 95% interval
+
+op <- par(mar = c(3.5, 4, 2.5, 1))
+plot(tt, gdp$gdp, type = "n", xaxt = "n", bty = "n", ylim = c(-12, 18),
+     xlab = "", ylab = "Real GDP growth (%, annualized)")
+rect(lo, -12, hi, 18, col = "#EDE7F6", border = NA)
+abline(h = 0, col = "#CFCFD4")
+lines(tt, gdp$gdp, col = "#5A5A66", lwd = 1.4)
+segments(brk, -12, brk, 15, col = "#6C4FB8", lwd = 2)
+text(brk, 16.5, "  break: 1984 Q1", adj = c(0, 0.5), col = "#6C4FB8", cex = 0.85)
+text(lo,  16.5, "95% CI  ",         adj = c(1, 0.5), col = "#8E7BC6", cex = 0.8)
+at <- seq(2, nrow(gdp), by = 40)
+axis(1, at = at, labels = sub(" Q[1-4]$", "", gdp$yq[at]), col = "#CFCFD4")
+par(op)
+```
+
+The shaded band is the 95% confidence interval for the break date and the vertical
+rule the point estimate. The visible narrowing of the series after it is the
+compression that the upper-quantile results quantify.
+
+### 4.7 Comparing the two normalizations
+
+Re-running the analysis with `norm.method = "spectral"` changes the statistics
+somewhat but not the conclusions:
+
+| $\tau$ | $SQ_\tau$, `"cholesky"` | $SQ_\tau$, `"spectral"` | 5% critical value |
+|---:|---:|---:|---:|
+| 0.20 | 1.423 | 1.158 | 1.530 |
+| 0.35 | 1.479 | 1.461 | 1.530 |
+| 0.50 | 1.001 | 0.962 | 1.530 |
+| 0.65 | 1.818 | 1.845 | 1.530 |
+| 0.80 | 2.171 | 2.332 | 1.530 |
+| $DQ$ | 1.028 | 1.043 | 0.910 |
+
+Every rejection decision is unchanged, and the estimated break date remains
+1984 Q1 with the identical confidence interval [1977 Q3, 1984 Q2] — as it must,
+since break dates do not depend on the normalization.
+
+### 4.8 Computational time
+
+The dynamic programming algorithm determines the globally optimal break
+partitions at a cost growing with the square of the sample size, regardless of the
+number of breaks allowed. In this example the program finishes within a few
+minutes on a typical desktop computer with a single processor. Because the
+quantile trimming here is symmetric ($\omega_1 = 0.2$, $\omega_2 = 0.8$) and there
+are only three coefficients, the $DQ$ critical values come from the response
+surface and no simulation is required.
+
+### 4.9 Potential error messages
+
+The function displays error messages if the inputs are not configured properly.
+Suppose we set `trim.e = 0.2` and `m.max = 6`. The product exceeds 1, because it
+is not possible to allow six breaks when each regime is at least 20% of the
+sample:
+
+```{r err1, error = TRUE}
+rq.break(y, x, vec.tau, N = 1, trim.e = 0.2, vec.time = gdp[, "yq"],
+         m.max = 6, v.a = 2, v.b = 2)
+```
+
+As another example, if `trim.e` is too small the message suggests increasing it:
+
+```{r err2, error = TRUE}
+rq.break(y, x, vec.tau, N = 1, trim.e = 0.01, vec.time = gdp[, "yq"],
+         m.max = 3, v.a = 2, v.b = 2)
+```
+
+When an error message is produced the program exits with no saved results, and the
+user can modify the inputs and restart.
+
+## 5. Application 2: repeated cross-sections — youth drinking and driving
+
+### 5.1 The data
+
+The main steps and the output structure are similar to the time series case. The
+data record the blood alcohol concentration of drivers under 21 involved in motor
+vehicle accidents in California from 1983 Q1 to 2007 Q4, together with age, a
+gender dummy, and a dummy for the fourth quarter. There are $N = 108$ drivers per
+quarter over $T = 100$ quarters, giving $NT = 10{,}800$ observations. The data are
+organized so that the first $N$ rows are for the first time period, the next $N$
+rows for the next period, and so forth.
+
+```{r driver-data}
+data(driver)
+str(driver)
+```
+
+```{r driver-setup}
+y        <- driver[, "bac"]
+x        <- driver[, c("age", "gender", "winter")]
+vec.time <- unique(driver[, "yq"])    # length T = 100, one label per quarter
+length(vec.time)
+```
+
+The choice of quantiles is dictated by the data. BAC is exactly zero for most of
+these drivers:
+
+```{r driver-zeros}
+mean(driver$bac == 0)
+quantile(driver$bac, c(0.50, 0.60, 0.65, 0.70, 0.80, 0.85))
+```
+
+About 62% of the observations sit at zero, so every quantile below roughly
+$\tau = 0.62$ falls inside that point mass and carries no information about
+drinking behaviour. Attention is therefore restricted to
+$\tau \in \{0.70, 0.75, 0.80, 0.85\}$ — high enough to clear the mass point, low
+enough to be estimated reliably.
+
+### 5.2 Running the function
+
+```{r driver-run, eval = FALSE}
+res.d <- rq.break(y, x,
+                  vec.tau     = seq(0.70, 0.85, by = 0.05),
+                  N           = 108,
+                  trim.e      = 0.05,
+                  vec.time    = vec.time,
+                  m.max       = 3,
+                  v.a         = 2,
+                  v.b         = 2,
+                  verbose     = TRUE,
+                  norm.method = "cholesky")
+```
+
+Two features differ from the time series case. First, `N = 108` changes the
+meaning of the sample: regime lengths, trimming and break dates are counted in
+*periods*. Second, the quantile range is **asymmetric** ($\omega_1 = 0.70$,
+$\omega_2 = 0.85$, so $\omega_2 \neq 1 - \omega_1$), so the response surface does
+not apply and the function prints
+
+```
+The critical values of the DQ test is obtained via simulations
+```
+
+before generating them by simulation, with 50,000 replications, for this specific
+design matrix. This is accurate but noticeably slower, and is the dominant cost of
+this example. 
+
+### 5.3 Output based on separate quantiles
+
+The first quantile is $\tau = 0.7$, for which two breaks are detected along with
+their confidence intervals:
+
+```
+$s.out$test_0.7
+                1 Breaks 2 Breaks 3 Breaks
+SQ test         5.179373 2.205150 1.339123
+Critical values 1.574681 1.679331 1.737955
+
+$s.out$nbreak_0.7
+[1] 2
+
+$s.out$br_est_0.7
+        Estimate CI_Lower_Bound CI_Upper_Bound
+Break 1       10              6             15
+Break 2       38             35             39
+
+$s.out$br_est_time_0.7
+        Estimate  CI_Lower_Bound CI_Upper_Bound
+Break 1 "1985 Q2" "1984 Q2"      "1986 Q3"
+Break 2 "1992 Q2" "1991 Q3"      "1992 Q3"
+```
+
+The tests reject far more decisively than in the time series case — the statistics
+are several times their critical values — which is what a cross-section of 108 per
+period buys in power. The output continues with the parameter estimates for the
+three regimes and then moves to the next quantile.
+
+The number of breaks varies across the range:
+
+| $\tau$ | 0.70 | 0.75 | 0.80 | 0.85 |
+|---|---|---|---|---|
+| $SQ_\tau$ (1 break) | 5.179 | 4.613 | 3.503 | 3.258 |
+| $SQ_\tau(2 \mid 1)$ | 2.205 | 1.931 | 1.392 | 1.056 |
+| 5% critical values | 1.575 / 1.679 | 1.575 / 1.679 | 1.575 / 1.679 | 1.575 / 1.679 |
+| Breaks detected | 2 | 2 | 1 | 1 |
+
+At $\tau = 0.80$ and $0.85$ only the 1992 break is found; the mid-1980s break
+appears only at the two lower quantiles. This is the pattern behind the
+substantive conclusion below.
+
+### 5.4 Output based on multiple quantiles
+
+```
+$m.out$test_joint
+                 1 Breaks  2 Breaks  3 Breaks
+DQ test         2.3734870 1.0105268 0.5995825
+Critical values 0.7717347 0.8162768 0.8428049
+
+$m.out$nbreak_joint
+[1] 2
+
+$m.out$br_est_joint
+        Estimate CI_Lower_Bound CI_Upper_Bound
+Break 1        9              5             13
+Break 2       38             34             39
+
+$m.out$br_est_joint_time
+        Estimate  CI_Lower_Bound CI_Upper_Bound
+Break 1 "1985 Q1" "1984 Q1"      "1986 Q1"
+Break 2 "1992 Q2" "1991 Q2"      "1992 Q3"
+```
+
+The joint analysis recovers both breaks. The rest of the
+output contains the coefficient estimates for each quantile followed by the break
+size estimates at each quantile. At $\tau = 0.7$:
+
+```
+$m.out$bsize_0.7_Regime_2_minus_Regime_1
+                  Value  Std. Error       t value   Pr(>|t|)
+Intercept -2.200000e-01 0.086392487 -2.546518e+00 0.01089414
+x1         1.000000e-02 0.004616669  2.166064e+00 0.03032812
+x2         1.000000e-02 0.015634579  6.396079e-01 0.52244114
+x3        -2.674365e-17 0.013993342 -1.911170e-15 1.00000000
+
+$m.out$bsize_0.7_Regime_3_minus_Regime_2
+                 Value  Std. Error    t value   Pr(>|t|)
+Intercept  0.103333333 0.054260043  1.9044093 0.05688347
+x1        -0.008333333 0.003023686 -2.7560181 0.00586080
+x2         0.003333333 0.010360097  0.3217473 0.74765036
+x3         0.020000000 0.010266885  1.9480105 0.05143960
+```
+
+Note that in `$m.out` the coefficients and break sizes are reported for **every**
+quantile in `vec.tau` at the $DQ$ break dates, including $\tau = 0.80$ and $0.85$
+where the single-quantile analysis found only one break. This is by construction:
+the joint procedure decides the number and location of the breaks once, using all
+quantiles together, and then estimates each quantile's coefficients subject to that
+common partition.
+
+The two dates are consistent with the 1984 National Minimum Drinking Age Act and a
+1991 beer tax increase. The changes are negative and meaningful in magnitude, but
+smaller for higher quantiles — the policies were more effective for "light
+drinkers" than for "heavy drinkers". This is encouraging but falls short of
+expectations, since heavy drinkers are more likely to cause accidents, suggesting
+that additional policies are needed to deter heavy drinking.
+
+## 6. Working with the individual functions
+
+`rq.break()` is a wrapper around exported components, each of which can be used on
+its own — to test at a date decided in advance, to reuse an expensive computation,
+or to inspect intermediate quantities.
+
+### 6.1 A single test at a single quantile
+
+`sq.test.0vs1()` implements $SQ_\tau$ of Section 2.4.1 with no search over the
+number of breaks:
+
+```{r sq-test}
+y <- gdp[, "gdp"]
+x <- gdp[, c("lag1", "lag2")]
+
+sq.test.0vs1(y, x, v.tau = 0.8, n.size = 1)
+```
+
+At the 5% level with three coefficients the critical value is 1.530, so this
+rejects. `dq.test.0vs1()` is the corresponding $DQ$ test over a quantile range:
+
+```{r dq-test}
+dq.test.0vs1(y, x, q.L = 0.2, q.R = 0.8, n.size = 1)
+```
+
+For a symmetric range its critical values come from the response surface:
+
+```{r res-surface}
+res.surface(p = 3, l = 0, q.L = 0.2, q.R = 0.8, d.Sym = TRUE)   # 10%, 5%, 1%
+```
+
+The sequential versions of Section 2.4.2 take the break dates estimated under the
+null and test for one more:
+
+```{r seq-tests}
+sq.test.lvsl_1(y, x, v.tau = 0.8, n.size = 1, vec.date = 146)
+dq.test.lvsl_1(y, x, q.L = 0.2, q.R = 0.8, n.size = 1, vec.date = 146)
+```
+
+Both fall below their critical values (1.638 and 0.958 at the 5% level),
+confirming a single break.
+
+### 6.2 Estimation given break dates
+
+`rq.est.regime()` fits each regime separately:
+
+```{r est-regime}
+rq.est.regime(y, x, v.tau = 0.8, vec.date = 146, n.size = 1)
+```
+
+`rq.est.full()` fits all regimes in a single quantile regression, which is what
+makes the differences between adjacent regimes and their standard errors
+available:
+
+```r
+fit <- rq.est.full(y, x, v.tau = 0.8, vec.date = 146, n.size = 1)
+summary(fit, se = "nid", covariance = TRUE)
+```
+
+`ci.date.m()` builds the confidence intervals of Section 2.3 for dates supplied by
+the user; the three columns are the estimate and the lower and upper bounds:
+
+```{r ci-date}
+ci.date.m(y, x, vec.tau = 0.8, vec.date = 146, n.size = 1, v.b = 2)
+```
+
+Passing a vector to `vec.tau` gives the multi-quantile interval instead.
+
+### 6.3 The search itself
+
+The expensive step is `gen.long()`, which evaluates the objective function over
+every admissible segment. `brdate()` then runs the dynamic program of Bai and
+Perron (2003) over those values, and `sq()` / `dq()` apply the sequential tests.
+Splitting them apart allows the `gen.long()` output to be reused across several
+settings of `m.max`, `v.a` or `norm.method`:
+
+```r
+T.size    <- length(y)
+trim.size <- round(T.size * 0.15)
+
+out.long   <- gen.long(y, x, vec.tau, n.size = 1, trim.size)   # the expensive step
+mat.long.s <- out.long$mat.long    # one column per quantile
+vec.long.m <- out.long$vec.long    # quantiles combined
+
+mat.date <- brdate(y, x, n.size = 1, m = 3, trim.size, vec.long.m)
+
+dq(y, x, vec.tau, q.L = 0.2, q.R = 0.8, n.size = 1, m.max = 3,
+   trim.size, mat.date, d.Sym = TRUE, table.cv = NULL)
+```
+
+`d.Sym = TRUE` asserts a symmetric quantile range so that the response surface
+applies, in which case `table.cv = NULL` is correct. For an asymmetric range set
+`d.Sym = FALSE` and supply simulated critical values.
+
+## 7. Practical notes
+
+**Runtime.** The cost is dominated by `gen.long()`, which is $O(T^2)$ per quantile
+and does not depend on `m.max`. Raising `m.max` adds only the cheap search over
+precomputed values and a few more sequential tests, so there is little to gain by
+keeping it artificially small. What drives the cost is $T$ (quadratically) and the
+number of quantiles (linearly).
+
+**Warnings about non-unique fits.** `rq()` warns when a quantile regression
+solution is not unique, which happens routinely on short segments and on data with
+many tied values — the `driver` BAC data especially. These warnings are benign
+here; `options(warn = -1)` suppresses them.
+
+**"confidence interval is out of the range".** This warning means an interval
+extends past the start or end of the sample. The date estimate is still reported,
+but is not converted to calendar form, so `br_est_time_*` will be missing for that
+quantile. It usually signals a break estimated close to a sample boundary, or one
+estimated imprecisely.
+
+**Reproducibility.** When the $DQ$ critical values come from tables or the response
+surface they are fixed and repeated runs give identical output. When they are
+simulated instead, they carry Monte Carlo noise, and the package does not set a
+seed internally. In the `driver` example the simulated 5% critical values move by
+roughly $\pm 0.003$ across runs — far too small to change the number of breaks
+detected, but enough that the printed critical values will not match to the last
+digit from one session to the next. Call `set.seed()` before `rq.break()` if
+byte-identical output is required. Everything else — break dates, coefficients,
+and the $SQ$ and $DQ$ statistics themselves — is deterministic.
+
+
+## References
+
+Bai, J. (1995). Least Absolute Deviation Estimation of a Shift. *Econometric
+Theory*, 11, 403–436.
+
+Bai, J. and P. Perron (2003). Computation and Analysis of Multiple Structural
+Change Models. *Journal of Applied Econometrics*, 18, 1–22.
+
+Kessy, A., A. Lewin and K. Strimmer (2018). Optimal Whitening and Decorrelation.
+*The American Statistician*, 72(4), 309–314.
+
+Koenker, R. (2005). *Quantile Regression*. Cambridge University Press.
+
+Oka, T. and Z. Qu (2011). Estimating Structural Changes in Regression Quantiles.
+*Journal of Econometrics*, 162, 248–267.
+[doi:10.1016/j.jeconom.2011.01.005](https://doi.org/10.1016/j.jeconom.2011.01.005)
+
+Picard, D. (1985). Testing and Estimating Change-Points in Time Series. *Advances
+in Applied Probability*, 17, 841–867.
+
+Qu, Z. (2008). Testing for Structural Change in Regression Quantiles. *Journal of
+Econometrics*, 146, 170–184.
+[doi:10.1016/j.jeconom.2008.08.006](https://doi.org/10.1016/j.jeconom.2008.08.006)
+
+Su, L. and Z. Xiao (2008). Testing for Parameter Stability in Quantile Regression
+Models. *Statistics and Probability Letters*, 78, 2768–2775.
+
+Yao, Y. C. (1987). Approximating the Distribution of the Maximum Likelihood
+Estimate of the Change-Point in a Sequence of Independent Random Variables. *The
+Annals of Statistics*, 15, 1321–1328.

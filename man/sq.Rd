@@ -4,7 +4,7 @@
 \alias{sq}
 \title{Determine the Number of Breaks Using the SQ(l|l+1) Test}
 \usage{
-sq(y, x, v.tau, n.size = 1, m.max, trim.size, mat.date)
+sq(y, x, v.tau, n.size, m.max, trim.size, mat.date, norm.method)
 }
 \arguments{
 \item{y}{A numeric vector of dependent variables (\eqn{NT \times 1}).}
@@ -20,6 +20,10 @@ sq(y, x, v.tau, n.size = 1, m.max, trim.size, mat.date)
 \item{trim.size}{A numeric value specifying the trimming size (the minimum length of a segment).}
 
 \item{mat.date}{A numeric matrix of break dates.}
+
+\item{norm.method}{A character string specifying how the subgradient process is normalized;
+either \code{"cholesky"} (the default, as in versions 1.0.2 and earlier) or \code{"spectral"}.
+Passed to \code{sq.test.0vs1()}; see its documentation.}
 }
 \value{
 A list with the following components:
@@ -35,33 +39,33 @@ This procedure sequentially applies the SQ test to determine the number of break
 }
 \examples{
 \donttest{
-## data 
+## data
 data(gdp)
 y = gdp$gdp
-x = gdp[,c("lag1", "lag2")] 
+x = gdp[,c("lag1", "lag2")]
 
-## quantile 
-v.tau = 0.8 
+## quantile
+v.tau = 0.8
 
-# cross-sectional size 
-n.size = 1 
+# cross-sectional size
+n.size = 1
 
-# the maximum number of breaks 
+# the maximum number of breaks
 m.max = 3
 
-## trim 
+## trim
 T.size    = length(y)
 trim.e    = 0.2
 trim.size = round(T.size * trim.e)  #minimum length of a regime
 
-# get.long 
+# get.long
 out.long   = gen.long(y, x, v.tau, n.size, trim.size)
 mat.long.s = out.long$mat.long  ## for individual quantile
 
-# mat.date 
+# mat.date
 mat.date = brdate(y, x, n.size, m.max, trim.size, mat.long.s)
 
-# sq 
+# sq
 result = sq(y, x, v.tau, n.size, m.max, trim.size, mat.date)
 print(result)
 }

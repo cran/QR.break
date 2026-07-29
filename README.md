@@ -40,10 +40,9 @@ verbose = TRUE #print
 options(warn=-1) #sometimes fit is non-unique
 
 ## Structural breaks in quantile regression
-result = rq.break(y, x, vec.tau, N, trim.e, vec.time, m.max, v.a, v.b, verbose)
+result = rq.break(y, x, vec.tau, N, trim.e, vec.time, m.max, v.a, v.b, verbose, norm.method)
 
 print(result)
-
 
 
 ## Example 2
@@ -61,7 +60,7 @@ v.a <-2
 v.b <-2
 verbose = TRUE #print
 options(warn=-1) #sometimes fit is non-unique
-result <- rq.break(y, x, vec.tau, N, trim.e, vec.time, m.max, v.a, v.b, verbose)
+result <- rq.break(y, x, vec.tau, N, trim.e, vec.time, m.max, v.a, v.b, verbose, norm.method)
 
 
 ```
@@ -73,6 +72,7 @@ result <- rq.break(y, x, vec.tau, N, trim.e, vec.time, m.max, v.a, v.b, verbose)
 - Methods to determine the optimal number of breaks
 - Estimation of break locations
 - Compatible with time series and cross-sectional data
+- A choice of normalization for the test statistics, including one that does not depend on the ordering, units or signs of the regressors (`norm.method`)
 
 
 ## References

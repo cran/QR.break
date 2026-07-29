@@ -4,7 +4,7 @@
 \alias{dq.test.lvsl_1}
 \title{Sequential Test for Additional Breaks within a Range of Quantiles}
 \usage{
-dq.test.lvsl_1(y, x, q.L, q.R, n.size = 1, vec.date)
+dq.test.lvsl_1(y, x, q.L, q.R, n.size, vec.date, norm.method)
 }
 \arguments{
 \item{y}{A numeric vector of dependent variables (\eqn{NT \times 1}).}
@@ -18,6 +18,10 @@ dq.test.lvsl_1(y, x, q.L, q.R, n.size = 1, vec.date)
 \item{n.size}{An integer specifying the size of cross-sections (\eqn{N}).}
 
 \item{vec.date}{A numeric vector (\eqn{L \times 1}) of estimated break dates under the null hypothesis.}
+
+\item{norm.method}{A character string specifying how the subgradient process is normalized;
+either \code{"cholesky"} (the default, as in versions 1.0.2 and earlier) or \code{"spectral"}.
+Passed to \code{dq.test.0vs1()}; see its documentation.}
 }
 \value{
 A numeric value representing the DQ test statistic.

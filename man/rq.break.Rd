@@ -4,7 +4,7 @@
 \alias{rq.break}
 \title{Testing for Breaks and Estimating Break Dates and Sizes with Confidence Intervals}
 \usage{
-rq.break(y, x, vec.tau, N, trim.e, vec.time, m.max, v.a, v.b, verbose)
+rq.break(y, x, vec.tau, N, trim.e, vec.time, m.max, v.a, v.b, verbose, norm.method)
 }
 \arguments{
 \item{y}{a numeric vector, the outcome variable (NT x 1), the first N units are from the first period,
@@ -29,6 +29,9 @@ If set to NULL, the break dates will be reported as indices (e.g., 55 for the 55
 \item{v.b}{the coverage level for constructing the confidence intervals of break dates; 1 or 2 for 90\% and 95\%, respectively.}
 
 \item{verbose}{Logical; set to TRUE to print estimates to the console. Default is FALSE.}
+
+\item{norm.method}{a character string specifying how the subgradient process underlying the
+SQ and DQ tests is normalized; either \code{"cholesky"} (the default) or \code{"spectral"}. See Details.}
 }
 \value{
 A list containing:
@@ -52,6 +55,37 @@ Each list (\code{s.out} or \code{m.out}) contains:
 \description{
 This is the main function of this package for testing breaks in quantile regression models
 and estimating break dates and break sizes with corresponding confidence intervals.
+}
+\details{
+Let \eqn{W = \sum_{t} \sum_{i} x_{it} x_{it}'}{W = sum_t sum_i x_it x_it'}, where for a
+single time series the sums over \eqn{i} are absent. The tests normalize the subgradient
+process by an inverse square root of \eqn{W}. See Oka and Qu (2011, p. 254). Such a matrix
+is not unique, and \code{norm.method} selects which one is used.
+
+With \code{"cholesky"}, the normalization is \eqn{(R')^{-1}}, where \eqn{R} is the Cholesky
+factor of \eqn{W} returned by \code{chol()}, with \eqn{R'R = W}. This is the normalization
+used in versions 1.0.2 and earlier, and is the default setting. This option implicitly
+gives more weight to regressors appearing earlier in the regression. It is suitable when
+there is a natural ordering, e.g., in a quantile autoregression where the regressors are
+lagged values and low lags are ordered first. It is invariant to the units in which the
+regressors are measured, and to their signs.
+
+With \code{"spectral"}, the normalization is \eqn{C^{-1/2} D^{-1}}, where
+\eqn{D = \mathrm{diag}(\sqrt{\mathrm{diag}(W)})}{D = diag(sqrt(diag(W)))} and
+\eqn{C = D^{-1} W D^{-1}} is the correlation matrix of the regressors, and \eqn{C^{-1/2}}
+is its symmetric square root obtained from the spectral decomposition. This normalization
+treats the regressors symmetrically. It yields invariance to the order of the regressors,
+to their units of measurement, and to their signs. This is the appropriate choice when the
+regressors have no natural ordering.
+
+These invariance properties refer to the normalization. Because the quantile regression is
+re-estimated, the computed statistics can differ slightly when the regressors are reordered
+or rescaled, by an amount that decreases with the sample size.
+
+Both choices give the same limiting null distribution. The second option might yield lower
+power. In the two examples included in this package, the two options lead to the same
+conclusions. Break dates are unaffected by this argument, since they are obtained
+by minimizing the check function, which does not depend on the normalization.
 }
 \examples{
 \donttest{
@@ -87,8 +121,10 @@ vec.tau = seq(0.20, 0.80, by = 0.150)
 
 verbose = FALSE #do not print
 
+norm.method = "spectral"
+
 ## main estimation
-res = rq.break(y, x, vec.tau, N, trim.e, vec.time, m.max, v.a, v.b, verbose)
+res = rq.break(y, x, vec.tau, N, trim.e, vec.time, m.max, v.a, v.b, verbose, norm.method)
 
 }
 

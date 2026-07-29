@@ -4,6 +4,9 @@
 #' sequentially applying the DQ(\eqn{l | l+1}) test. It tests for additional breaks
 #' by comparing the test statistic to critical values at various significance levels.
 #'
+#' @usage dq(y, x, vec.tau, q.L, q.R, n.size, m.max, trim.size, mat.date,
+#'    d.Sym, table.cv, norm.method)
+#'
 #' @param y A numeric vector of dependent variables (\eqn{NT \times 1}).
 #' @param x A numeric matrix of regressors (\eqn{NT \times p}).
 #' @param vec.tau A numeric vector of quantiles of interest.
@@ -15,6 +18,9 @@
 #' @param mat.date A numeric matrix of break dates.
 #' @param d.Sym A logical value indicating whether the quantile range is symmetric satisfying \eqn{q.R=1-q.L}.
 #' @param table.cv A matrix of simulated critical values for cases not covered by the response surface.
+#' @param norm.method A character string specifying how the subgradient process is normalized;
+#' either \code{"cholesky"} (the default, as in versions 1.0.2 and earlier) or \code{"spectral"}.
+#' Passed to \code{dq.test.0vs1()}; see its documentation.
 #'
 #' @return A list containing:
 #' \describe{
@@ -27,7 +33,7 @@
 #' @examples
 #'
 #' \donttest{
-#' # This example may take substantial time for automated package 
+#' # This example may take substantial time for automated package
 #' # checks since it involves dynamic programming
 #' data(gdp)
 #' y = gdp$gdp
@@ -65,8 +71,10 @@
 #'
 #' @export
 
-dq = function(y, x, vec.tau, q.L, q.R, n.size=1, m.max, trim.size, mat.date,d.Sym, table.cv)
+dq = function(y, x, vec.tau, q.L, q.R, n.size=1, m.max, trim.size, mat.date,d.Sym, table.cv, norm.method = c("cholesky", "spectral"))
 {
+    norm.method = match.arg(norm.method)
+
     ## the number of regressors
     p.size = ncol(x) + 1  # add intercept
 
@@ -75,7 +83,7 @@ dq = function(y, x, vec.tau, q.L, q.R, n.size=1, m.max, trim.size, mat.date,d.Sy
     mat.cv   = matrix(0, 3, m.max)
 
     ## 0 vs 1 break
-    vec.test[1] = dq.test.0vs1(y, x, q.L, q.R, n.size)
+    vec.test[1] = dq.test.0vs1(y, x, q.L, q.R, n.size, norm.method)
     mat.cv[,1]  = get.cv.dq(0, p.size, q.L, q.R,d.Sym,table.cv)
     for (a in 1:3){
         if (mat.cv[a,1] < vec.test[1]){
@@ -92,7 +100,7 @@ dq = function(y, x, vec.tau, q.L, q.R, n.size=1, m.max, trim.size, mat.date,d.Sy
                 vec.loc = mat.date[1:k,k]
 
                 ## test: k vs k+1
-                vec.test[(k+1)] = dq.test.lvsl_1(y, x, q.L, q.R, n.size, vec.loc)
+                vec.test[(k+1)] = dq.test.lvsl_1(y, x, q.L, q.R, n.size, vec.loc, norm.method)
                 mat.cv[,(k+1)]  = get.cv.dq(k, p.size, q.L, q.R,d.Sym, table.cv)
 
                 ## for each significance level

@@ -9,12 +9,17 @@
 #' breaks in a quantile regression model should be increased from \eqn{L} to \eqn{L+1} using
 #' multiple quantiles.
 #'
+#' @usage dq.test.lvsl_1(y, x, q.L, q.R, n.size, vec.date, norm.method)
+#'
 #' @param y A numeric vector of dependent variables (\eqn{NT \times 1}).
 #' @param x A numeric matrix of regressors (\eqn{NT \times p}).
 #' @param q.L A numeric value specifying the lower bound of the quantile range.
 #' @param q.R A numeric value specifying the upper bound of the quantile range.
 #' @param vec.date A numeric vector (\eqn{L \times 1}) of estimated break dates under the null hypothesis.
 #' @param n.size An integer specifying the size of cross-sections (\eqn{N}).
+#' @param norm.method A character string specifying how the subgradient process is normalized;
+#' either \code{"cholesky"} (the default, as in versions 1.0.2 and earlier) or \code{"spectral"}.
+#' Passed to \code{dq.test.0vs1()}; see its documentation.
 #'
 #' @return A numeric value representing the DQ test statistic.
 #'
@@ -45,8 +50,10 @@
 #'
 #' @export
 
-dq.test.lvsl_1 = function(y, x, q.L, q.R, n.size = 1, vec.date) #order of vec.date and n.size adjusted 11/2023
+dq.test.lvsl_1 = function(y, x, q.L, q.R, n.size = 1, vec.date, norm.method = c("cholesky", "spectral")) #order of vec.date and n.size adjusted 11/2023
 {
+    norm.method = match.arg(norm.method)
+
     ## the number of breaks
     n.break  = length(vec.date)
 
@@ -66,12 +73,12 @@ dq.test.lvsl_1 = function(y, x, q.L, q.R, n.size = 1, vec.date) #order of vec.da
 
         ## test statistics
         # vec.test[j] = DQtest(temp$y1, temp$x1, q.L, q.R, n.size) switched 11/23
-        vec.test[j] = dq.test.0vs1(temp$y1, temp$x1, q.L, q.R, n.size)
+        vec.test[j] = dq.test.0vs1(temp$y1, temp$x1, q.L, q.R, n.size, norm.method)
 
     }
     ## the last regime
    # vec.test[(n.break+1)] = DQtest(rem.y, rem.x, q.L, q.R, n.size) switched 11/2023
-    vec.test[(n.break+1)] = dq.test.0vs1(rem.y, rem.x, q.L, q.R, n.size)
+    vec.test[(n.break+1)] = dq.test.0vs1(rem.y, rem.x, q.L, q.R, n.size, norm.method)
 
     ## return: maximum over tests
     return( max(vec.test) )

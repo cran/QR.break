@@ -4,7 +4,7 @@
 \alias{sq.test.lvsl_1}
 \title{Sequential Test for an Additional Break in a Conditional Quantile}
 \usage{
-sq.test.lvsl_1(y, x, v.tau, n.size = 1, vec.date)
+sq.test.lvsl_1(y, x, v.tau, n.size, vec.date, norm.method)
 }
 \arguments{
 \item{y}{A numeric vector of dependent variables (\eqn{NT \times 1}).}
@@ -16,6 +16,10 @@ sq.test.lvsl_1(y, x, v.tau, n.size = 1, vec.date)
 \item{n.size}{An integer specifying the size of the cross-section (\eqn{N}).}
 
 \item{vec.date}{A numeric vector of break dates estimated under the null hypothesis.}
+
+\item{norm.method}{A character string specifying how the subgradient process is normalized;
+either \code{"cholesky"} (the default, as in versions 1.0.2 and earlier) or \code{"spectral"}.
+Passed to \code{sq.test.0vs1()}; see its documentation.}
 }
 \value{
 A numeric value representing the test statistic.

@@ -2,6 +2,8 @@
 #'
 #' This procedure sequentially applies the SQ test to determine the number of breaks, based on a single quantile.
 #'
+#' @usage sq(y, x, v.tau, n.size, m.max, trim.size, mat.date, norm.method)
+#'
 #' @param y A numeric vector of dependent variables (\eqn{NT \times 1}).
 #' @param x A numeric matrix of regressors (\eqn{NT \times p}).
 #' @param v.tau A numeric value representing the quantile of interest.
@@ -9,6 +11,9 @@
 #' @param m.max An integer specifying the maximum number of breaks allowed.
 #' @param trim.size A numeric value specifying the trimming size (the minimum length of a segment).
 #' @param mat.date A numeric matrix of break dates.
+#' @param norm.method A character string specifying how the subgradient process is normalized;
+#' either \code{"cholesky"} (the default, as in versions 1.0.2 and earlier) or \code{"spectral"}.
+#' Passed to \code{sq.test.0vs1()}; see its documentation.
 #'
 #' @return A list with the following components:
 #' \describe{
@@ -20,45 +25,47 @@
 #'
 #' @examples
 #' \donttest{
-#' ## data 
+#' ## data
 #' data(gdp)
 #' y = gdp$gdp
-#' x = gdp[,c("lag1", "lag2")] 
-#' 
-#' ## quantile 
-#' v.tau = 0.8 
-#' 
-#' # cross-sectional size 
-#' n.size = 1 
-#' 
-#' # the maximum number of breaks 
+#' x = gdp[,c("lag1", "lag2")]
+#'
+#' ## quantile
+#' v.tau = 0.8
+#'
+#' # cross-sectional size
+#' n.size = 1
+#'
+#' # the maximum number of breaks
 #' m.max = 3
-#' 
-#' ## trim 
+#'
+#' ## trim
 #' T.size    = length(y)
 #' trim.e    = 0.2
 #' trim.size = round(T.size * trim.e)  #minimum length of a regime
-#' 
-#' # get.long 
+#'
+#' # get.long
 #' out.long   = gen.long(y, x, v.tau, n.size, trim.size)
 #' mat.long.s = out.long$mat.long  ## for individual quantile
-#' 
-#' # mat.date 
+#'
+#' # mat.date
 #' mat.date = brdate(y, x, n.size, m.max, trim.size, mat.long.s)
-#' 
-#' # sq 
+#'
+#' # sq
 #' result = sq(y, x, v.tau, n.size, m.max, trim.size, mat.date)
 #' print(result)
 #' }
 #'
 #' @export
 
-sq = function(y, x, v.tau, n.size=1, m.max, trim.size, mat.date)
+sq = function(y, x, v.tau, n.size=1, m.max, trim.size, mat.date, norm.method = c("cholesky", "spectral"))
 {
-    ## matrix 
+    norm.method = match.arg(norm.method)
+
+    ## matrix
     x = as.matrix(x)
-  
-  
+
+
     ## the number of regressors
     p.size = ncol(x) + 1  # plus intercept
 
@@ -68,7 +75,7 @@ sq = function(y, x, v.tau, n.size=1, m.max, trim.size, mat.date)
     mat.cv       = matrix(0, 3, m.max)
 
     ## 0 vs 1
-    vec.test[1] = sq.test.0vs1(y, x, v.tau, n.size)
+    vec.test[1] = sq.test.0vs1(y, x, v.tau, n.size, norm.method)
     mat.cv[,1]  = get.cv.sq(0, p.size) # critical value
     for (a in 1:3){
         if (mat.cv[a,1] < vec.test[1]){
@@ -85,7 +92,7 @@ sq = function(y, x, v.tau, n.size=1, m.max, trim.size, mat.date)
                 vec.loc = mat.date[1:k,k]
 
                 ## test: k vs k+1
-                vec.test[(k+1)] = sq.test.lvsl_1(y, x, v.tau, n.size, vec.loc)
+                vec.test[(k+1)] = sq.test.lvsl_1(y, x, v.tau, n.size, vec.loc, norm.method)
                 mat.cv[,(k+1)]  = get.cv.sq(k, p.size) # critical value
 
                 ## for each significance level

@@ -4,19 +4,8 @@
 \alias{dq}
 \title{Sequential Determination of the Number of Breaks Using the DQ Test}
 \usage{
-dq(
-  y,
-  x,
-  vec.tau,
-  q.L,
-  q.R,
-  n.size = 1,
-  m.max,
-  trim.size,
-  mat.date,
-  d.Sym,
-  table.cv
-)
+dq(y, x, vec.tau, q.L, q.R, n.size, m.max, trim.size, mat.date,
+   d.Sym, table.cv, norm.method)
 }
 \arguments{
 \item{y}{A numeric vector of dependent variables (\eqn{NT \times 1}).}
@@ -40,6 +29,10 @@ dq(
 \item{d.Sym}{A logical value indicating whether the quantile range is symmetric satisfying \eqn{q.R=1-q.L}.}
 
 \item{table.cv}{A matrix of simulated critical values for cases not covered by the response surface.}
+
+\item{norm.method}{A character string specifying how the subgradient process is normalized;
+either \code{"cholesky"} (the default, as in versions 1.0.2 and earlier) or \code{"spectral"}.
+Passed to \code{dq.test.0vs1()}; see its documentation.}
 }
 \value{
 A list containing:
@@ -58,7 +51,7 @@ by comparing the test statistic to critical values at various significance level
 \examples{
 
 \donttest{
-# This example may take substantial time for automated package 
+# This example may take substantial time for automated package
 # checks since it involves dynamic programming
 data(gdp)
 y = gdp$gdp
